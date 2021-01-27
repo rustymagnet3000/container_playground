@@ -54,10 +54,6 @@ docker run -it alpine_non_root sh
 
 `docker image ls`
 
-#### Image history
-
-`docker image history alpine_non_root`
-
 #### Show Container IDs
 
 `docker ps`
@@ -90,15 +86,17 @@ docker run -it alpine_non_root sh
 
 `docker stop ctf`
 
-#### Run service ( interactive, terminal flags )
+### Run
+
+#### Interactive, terminal
 
 `docker run -it ubuntu`
 
-#### Run service
+#### Run service in background
 
 `docker run -d -p 80:8181 blah_swagger/foobar`
 
-#### Run interactive, detach and allocate Pseudo Terminal
+#### Interactive, detach and allocate Pseudo Terminal
 
 `docker run -idt ...`
 
@@ -110,29 +108,38 @@ docker run -it alpine_non_root sh
 
 `docker run -idt --name ctf duckll/ctf-box`
 
+#### App Armor
+
+`docker run --rm -it --security-opt apparmor=docker-default duckll/ctf-box`
+
+### Audit
+
+#### Image history
+
+`docker image history alpine_non_root`
+
+#### History
+
+`docker history foobar:v1`
+
 #### Logs from Container ID
 
 `docker logs bd0657a17d54`
-
-#### Copy from Host to Docker Container
-
-`docker cp foo/bar.c bd0657a17d54://root/newbar.c`
 
 #### check if container is running as Privileged
 
 `docker inspect --format='{{.HostConfig.Privileged}}' <container id>`
 
+### Copy
+
+#### from Host to Docker Container
+
+`docker cp foo/bar.c bd0657a17d54://root/newbar.c`
+
 #### check if image can mount disk on Host
 
 `mount -t tmpfs none /mnt`
 
-#### Start the Swagger spec with a custom Port
-
-`docker run -d -p 7999:8080 blah_swagger/foobar`      # http://localhost:7999/
-
-#### App Armor
-
-`docker run --rm -it --security-opt apparmor=docker-default duckll/ctf-box`
 
 #### Run interactive Terminal with Cut and Paste
 
@@ -142,25 +149,27 @@ docker run -it alpine_non_root sh
 
 `docker stop <container id>`
 
-#### Remove Container ( removed before Image removal )
-
-`docker container rm <container id>`
-
 #### Stop by Image name
 
 `docker stop foobar-service`
+
+### Remove
+
+#### Container ( removed before Image removal )
+
+`docker container rm <container id>`
 
 #### Remove Image
 
 `docker image rm <image id> --force`
 
-#### Force Remove Image
+#### Remove all stopped containers
+
+`docker rm $(docker ps -a -q)`
+
+#### Remove Image, force
 
 `docker rmi -f duckll/ctf-box`
-
-#### Misc
-
-`docker history foobar:v1`
 
 #### Security cheat sheet
 

@@ -1,15 +1,29 @@
 #Pull the base image as Alpine
 FROM alpine:latest
 
+#install sudo
+RUN apk add sudo
+
 # Create a User ( not a Group )
-ENV USER=myuser
+ENV USER=foobar
 ENV UID=1001
+ENV SUDOERS_GRP=wheel
+ARG HOME=/home/$USER
 
+# Add user, with no password
 RUN adduser \
-    --disabled-password \
-    --no-create-home \
     --uid "$UID" \
-    "$USER"
+    --home "$HOME" \
+    --disabled-password \
+    --ingroup wheel \
+    "$USER" \
+    "$SUDOERS_GRP"
 
-#Run Container as myuser
+# Make sure the user can invoke sudo without a password
+RUN sed -e 's;^# \(%wheel.*NOPASSWD.*\);\1;g' -i /etc/sudoers
+
+RUN whoami
+# Run Container as user
 USER "$USER"
+RUN whoami
+WORKDIR "$HOME"
