@@ -1,30 +1,30 @@
-# Pull the base image as Alpine
-FROM alpine:latest
+# Pull the base image
+FROM ubuntu:latest
 
-# Install sudo
-RUN apk add sudo
-RUN apk add libcap
+# Install cgroup-tools to set limits on processes
+RUN apt-get update && apt-get install -y \
+  cgroup-tools \
+  sudo \
+  iputils-ping \
+  && rm -rf /var/lib/apt/lists/*
+
 
 # Create a User ( not a Group )
 ENV USER=foobar
-ENV UID=1001
+ENV UID=8877
 ENV SUDOERS_GRP=wheel
 ARG HOME=/home/$USER
 
-# Add user, with no password
-RUN adduser \
+# create non-privileged user and group 
+RUN useradd \
     --uid "$UID" \
-    --home "$HOME" \
-    --disabled-password \
-    --ingroup wheel \
-    "$USER" \
-    "$SUDOERS_GRP"
+    --comment "$USER" \
+    -ms /bin/bash \
+    "$USER"
 
-# Make sure the user can invoke sudo without a password
-RUN sed -e 's;^# \(%wheel.*NOPASSWD.*\);\1;g' -i /etc/sudoers
-
-RUN whoami
 # Run Container as user
 USER "$USER"
+RUN whoami
+USER root
 RUN whoami
 WORKDIR "$HOME"
