@@ -2,6 +2,10 @@
 
 ### Getting started
 
+#### Info
+
+`docker info`
+
 #### Version
 
 `docker --version`
@@ -92,6 +96,10 @@ docker run -it alpine_non_root sh
 
 `docker run -it ubuntu`
 
+#### Interactive, terminal specify Bash
+
+`docker run -it ubuntu bash`
+
 #### Run service in background
 
 `docker run -d -p 80:8181 blah_swagger/foobar`
@@ -129,6 +137,9 @@ docker run -it alpine_non_root sh
 #### check if container is running as Privileged
 
 `docker inspect --format='{{.HostConfig.Privileged}}' <container id>`
+
+#### Stats
+`docker stats < container ID >`
 
 ### Copy
 

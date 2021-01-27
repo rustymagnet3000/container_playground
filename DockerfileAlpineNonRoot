@@ -1,8 +1,9 @@
-#Pull the base image as Alpine
+# Pull Alpine as base image
 FROM alpine:latest
 
-#install sudo
+# Install sudo and capabilities
 RUN apk add sudo
+RUN apk add libcap
 
 # Create a User ( not a Group )
 ENV USER=foobar
