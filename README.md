@@ -1,20 +1,10 @@
 # Docker command reminders
 
+### Getting started
+
 #### Version
 
 `docker --version`
-
-#### Pull ( slim linux image )
-
-`docker pull alpine`
-
-#### Quick setup
-
-```docker
-docker pull alpine:latest
-
-docker run -it alpine 
-```
 
 #### Check docker is running
 
@@ -28,17 +18,45 @@ docker run -it alpine
 
 `docker image ls`
 
-#### View size of image
+#### Pull ( slim linux image )
+
+`docker pull alpine`
+
+#### Quick setup
 
 ```docker
-docker image ls duckll/ctf-box
-REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
-duckll/ctf-box      latest              089e6adcad4d        9 months ago        1.74GB
+docker pull alpine:latest
+
+docker run -it alpine 
 ```
+
+### Build
+
+#### Dockerfile, list, print commands inside Dockerfile and delete
+
+```docker
+docker build -f DockerfileAlpineNonRoot -t alpine_non_root:0.1 .
+docker image ls
+docker image history alpine_non_root
+docker image rm alpine_non_root:0.1
+```
+
+#### Dockerfile build and run
+
+```docker
+docker build -f DockerfileAlpineNonRoot -t alpine_non_root .
+docker run -it alpine_non_root sh 
+```
+
+### General commands
+
+#### View size of image
+
+`docker image ls`
 
 #### Image history
 
-`docker image history duckll/ctf-box`
+`docker image history alpine_non_root`
 
 #### Show Container IDs
 
