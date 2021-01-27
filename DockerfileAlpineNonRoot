@@ -1,0 +1,15 @@
+#Pull the base image as Alpine
+FROM alpine:latest
+
+# Create a User ( not a Group )
+ENV USER=myuser
+ENV UID=1001
+
+RUN adduser \
+    --disabled-password \
+    --no-create-home \
+    --uid "$UID" \
+    "$USER"
+
+#Run Container as myuser
+USER "$USER"
