@@ -45,7 +45,7 @@ docker image history alpine_non_root
 docker image rm alpine_non_root:0.1
 ```
 
-#### Dockerfile build and run
+#### Dockerfile
 
 ```docker
 docker build -f DockerfileAlpineNonRoot -t alpine_non_root .
@@ -100,6 +100,14 @@ docker run -it alpine_non_root sh
 
 `docker run -it ubuntu bash`
 
+#### Automatically remove container when it exits
+
+`docker run --rm -it ubuntu`
+
+#### Name container for Docker Container ls
+
+`docker run --name foobar -it ubuntu`
+
 #### Run service in background
 
 `docker run -d -p 80:8181 blah_swagger/foobar`
@@ -139,6 +147,7 @@ docker run -it alpine_non_root sh
 `docker inspect --format='{{.HostConfig.Privileged}}' <container id>`
 
 #### Stats
+
 `docker stats < container ID >`
 
 ### Copy
@@ -185,3 +194,7 @@ docker run -it alpine_non_root sh
 #### Security cheat sheet
 
 <https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html>
+
+## Docker CVEs
+
+[CVE-2019-5736: runc container breakout](https://seclists.org/oss-sec/2019/q1/119)

@@ -4,6 +4,7 @@ FROM ubuntu:latest
 # Install cgroup-tools to set limits on processes
 RUN apt-get update && apt-get install -y \
   cgroup-tools \
+  curl \
   sudo \
   iputils-ping \
   && rm -rf /var/lib/apt/lists/*
@@ -22,9 +23,14 @@ RUN useradd \
     -ms /bin/bash \
     "$USER"
 
+# Add user group to sudo group
+RUN adduser "$USER" sudo
+
+# Ensure sudo group users are not asked for a password
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> \
+/etc/sudoers
+
 # Run Container as user
 USER "$USER"
 RUN whoami
-USER root
-RUN whoami
-WORKDIR "$HOME"
+WORKDIR "$HOME"tar -xvf alpine.tar.gz
