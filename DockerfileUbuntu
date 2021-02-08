@@ -33,4 +33,3 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> \
 # Run Container as user
 USER "$USER"
 RUN whoami
-WORKDIR "$HOME"tar -xvf alpine.tar.gz

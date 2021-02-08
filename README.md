@@ -160,7 +160,6 @@ docker run -it alpine_non_root sh
 
 `mount -t tmpfs none /mnt`
 
-
 #### Run interactive Terminal with Cut and Paste
 
 `docker container exec -it ctf bash`
@@ -194,6 +193,26 @@ docker run -it alpine_non_root sh
 #### Security cheat sheet
 
 <https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html>
+
+## Snyk
+
+### Setup
+
+```bash
+brew install npm
+npm install -g snyk
+snyk version
+snyk auth               // prompts for password
+< login via GitHub / Docker account >
+```
+
+### Check for vulnerabilities
+
+```bash
+snyk container test busybox
+snyk container test $(basename $(pwd)) --file=Dockerfile
+snyk test --docker ubuntu_vanilla --file=DockerfileUbuntu --exclude-base-image-vuln
+```
 
 ## Docker CVEs
 
