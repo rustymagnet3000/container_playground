@@ -45,11 +45,20 @@ docker image history alpine_non_root
 docker image rm alpine_non_root:0.1
 ```
 
-#### Dockerfile
+#### Order matters
 
-```docker
-docker build -f DockerfileAlpineNonRoot -t alpine_non_root .
-docker run -it alpine_non_root sh 
+For an efficient use of the caching mechanism, [reference](https://www.docker.com/blog/containerized-python-development-part-1/):
+> place the instructions for layers that change frequently after the ones that incur less changes.
+
+```python
+# Changes less frequently
+COPY requirements.txt .
+
+# install dependencies
+RUN pip install -r requirements.txt
+
+# Changes often
+COPY src/ .
 ```
 
 ### General commands
