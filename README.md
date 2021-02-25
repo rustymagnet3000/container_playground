@@ -203,6 +203,32 @@ COPY src/ .
 
 <https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html>
 
+## circleci
+
+### local setup
+
+It was essential that you debug the `config.yaml` file before uploading to circleci.
+
+```bash
+brew install --ignore-dependencies circleci
+circleci version
+circleci setup
+ - go to web interface for CircleCI and get Personal Access Token
+ - Just press enter on the host
+circleci context
+```
+
+### On every config.yaml change, run
+
+```bash
+circleci config process .circleci/config.yml > process.yml
+circleci local execute -c process.yml --job build-and-test    
+```
+
+### Environment variables
+
+circleci local execute -c process.yml --job build_test -e VAR1=FOO
+
 ## Snyk
 
 ### Setup
