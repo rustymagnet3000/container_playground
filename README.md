@@ -36,9 +36,21 @@ docker run -it alpine
 
 ### Build
 
+#### Build and run
+
+```bash
+docker build -f Dockerfile -t demo_lambda:0.3 .
+
+docker image ls
+
+docker run -it demo_lambda:0.3
+
+docker run -it demo_lambda:0.3 bash    # shell in container
+```
+
 #### Dockerfile, list, print commands inside Dockerfile and delete
 
-```docker
+```bash
 docker build -f DockerfileAlpineNonRoot -t alpine_non_root:0.1 .
 docker image ls
 docker image history alpine_non_root
@@ -203,6 +215,12 @@ COPY src/ .
 
 <https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html>
 
+## python
+
+### Do I use a virtualenv?
+
+<https://stackoverflow.com/questions/29146792/why-people-create-virtualenv-in-a-docker-container>
+
 ## circleci
 
 ### local setup
@@ -211,11 +229,16 @@ It was essential that you debug the `config.yaml` file before uploading to circl
 
 ```bash
 brew install --ignore-dependencies circleci
+
 circleci version
+
 circleci setup
  - go to web interface for CircleCI and get Personal Access Token
  - Just press enter on the host
+
 circleci context
+
+circleci config validate
 ```
 
 ### On every config.yaml change, run
@@ -227,7 +250,15 @@ circleci local execute -c process.yml --job build-and-test
 
 ### Environment variables
 
-circleci local execute -c process.yml --job build_test -e VAR1=FOO
+`circleci local execute -c process.yml --job build_test -e VAR1=FOO`
+
+### Resources
+
+<https://circleci.com/developer/orbs/orb/circleci/python>
+
+<https://circleci.com/docs/2.0/local-cli/#run-a-job-in-a-container-on-your-machine>
+
+<https://circleci.com/docs/2.0/ssh-access-jobs/>
 
 ## Snyk
 
