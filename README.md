@@ -283,3 +283,9 @@ snyk test --docker ubuntu_vanilla --file=DockerfileUbuntu --exclude-base-image-v
 ## Docker CVEs
 
 [CVE-2019-5736: runc container breakout](https://seclists.org/oss-sec/2019/q1/119)
+
+## References
+
+#### Dockerfile design
+
+<https://www.youtube.com/watch?v=15GYSxzdTLQ>
