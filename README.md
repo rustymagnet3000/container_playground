@@ -1,4 +1,4 @@
-# Docker command reminders
+# Docker
 
 ### Getting started
 
@@ -221,6 +221,19 @@ COPY src/ .
 
 <https://stackoverflow.com/questions/29146792/why-people-create-virtualenv-in-a-docker-container>
 
+## Sidecar design pattern
+
+There are [lots of design patterns](https://techbeacon.com/enterprise-it/7-container-design-patterns-you-need-know) with containers.  If containers only have "one responsibility", the `sidecar pattern` ensures you add common functionaly out of a container. This includes:
+
+- Logging
+- Monitoring
+- TLS set up
+- Strip / add Response Headers
+- Configuration
+
+Overview [here](https://containerjournal.com/topics/container-security/tightening-security-with-sidecar-proxies/):
+> `Decoupling` of common tasks to an independent unified service deployed alongside any core application service is known as a “sidecar” architecture.  Primary application in Go.   Existing functionality written in Python to collect logs and metrics.  Offloading that Python code into a sidecar is more efficient than asking the development team to rewrite that functionality in Go.
+
 ## circleci
 
 ### local setup
@@ -272,12 +285,22 @@ snyk auth               // prompts for password
 < login via GitHub / Docker account >
 ```
 
-### Check for vulnerabilities
+### Test dependencies
 
 ```bash
+snyk test --docker debian --file=Dockerfile
+snyk test --docker debian --file=Dockerfile --exclude-base-image-vulns
+
+// https://snyk.io/blog/the-new-improved-snyk-container-cli/ `container` keyword replaces `--docker`
+
 snyk container test busybox
 snyk container test $(basename $(pwd)) --file=Dockerfile
-snyk test --docker ubuntu_vanilla --file=DockerfileUbuntu --exclude-base-image-vuln
+```
+
+### Create a project on the Snyk website is continuously monitored for new vulnerabilities
+
+```bash
+snyk monitor
 ```
 
 ## Docker CVEs
