@@ -34,6 +34,34 @@ docker pull alpine:latest
 docker run -it alpine 
 ```
 
+### Local credentials
+
+#### Current docker.io logged in user
+
+```bash
+docker-credential-$(
+  jq -r .credsStore ~/.docker/config.json
+) list | jq -r '
+  . |
+    to_entries[] |
+    select(
+      .key | 
+      contains("docker.io")         // modify here for other accounts
+    ) |
+    last(.value)
+'
+```
+
+#### Contents of Credential Helper
+
+```bash
+docker-credential-desktop list | \
+    jq -r 'to_entries[].key'   | \
+    while read; do
+        docker-credential-desktop get <<<"$REPLY";
+    done
+```
+
 ### Build
 
 #### Build and run
@@ -159,15 +187,21 @@ docker push rusty/flasksidecardemo
 
 `docker run --rm -it --security-opt apparmor=docker-default duckll/ctf-box`
 
-### Audit
+### History
 
-#### Image history
+#### Image
 
 `docker image history alpine_non_root`
 
-#### History
+#### Tag
 
 `docker history foobar:v1`
+
+#### No truncation
+
+`docker image history foo/bar:0.2.1 --no-trunc`
+
+### Audit
 
 #### Logs from Container ID
 
