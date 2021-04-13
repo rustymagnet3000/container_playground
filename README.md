@@ -73,6 +73,16 @@ RUN pip install -r requirements.txt
 COPY src/ .
 ```
 
+#### Push to DockerHub
+
+```bash
+<Create Private repo on Dockerhub>
+docker build -t rusty/flasksidecardemo .
+sudo lsof -iTCP -sTCP:LISTEN -n -P 	// check no containers running on port
+docker run -d -p 5000:5000 rusty/flasksidecardemo
+docker push rusty/flasksidecardemo
+```
+
 ### General commands
 
 #### View size of image
