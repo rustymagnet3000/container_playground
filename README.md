@@ -1,5 +1,33 @@
 # Docker and Kubenetes
+<!-- TOC depthfrom:2 depthto:3 withlinks:true updateonsave:true orderedlist:false -->
 
+- [Docker](#docker)
+    - [Getting started](#getting-started)
+    - [Local credentials](#local-credentials)
+    - [Build](#build)
+    - [General commands](#general-commands)
+    - [Run](#run)
+    - [History](#history)
+    - [Audit](#audit)
+    - [Copy](#copy)
+    - [Remove](#remove)
+    - [python](#python)
+    - [Sidecar design pattern](#sidecar-design-pattern)
+- [circleci](#circleci)
+    - [local setup](#local-setup)
+    - [On every config.yaml change, run](#on-every-configyaml-change-run)
+    - [Environment variables](#environment-variables)
+    - [Resources](#resources)
+- [Snyk](#snyk)
+    - [Setup](#setup)
+    - [Test dependencies](#test-dependencies)
+    - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
+    - [Docker CVEs](#docker-cves)
+    - [References](#references)
+- [Kubernetes](#kubernetes)
+    - [Deploy to K8S from Private Dockerhub repo](#deploy-to-k8s-from-private-dockerhub-repo)
+
+<!-- /TOC -->
 ## Docker
 
 ### Getting started
@@ -266,13 +294,13 @@ docker push rusty/flasksidecardemo
 
 <https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html>
 
-## python
+### python
 
-### Do I use a virtualenv?
+#### Do I use a virtualenv?
 
 <https://stackoverflow.com/questions/29146792/why-people-create-virtualenv-in-a-docker-container>
 
-## Sidecar design pattern
+### Sidecar design pattern
 
 There are [lots of design patterns](https://techbeacon.com/enterprise-it/7-container-design-patterns-you-need-know) with containers.  If containers only have "one responsibility", the `sidecar pattern` ensures you add common functionaly out of a container. This includes:
 
@@ -348,17 +376,17 @@ snyk container test busybox
 snyk container test $(basename $(pwd)) --file=Dockerfile
 ```
 
-### Create a project on the Snyk website is continuously monitored for new vulnerabilities
+### Monitor for new vulnerabilities
 
 ```bash
 snyk monitor
 ```
 
-## Docker CVEs
+### Docker CVEs
 
 [CVE-2019-5736: runc container breakout](https://seclists.org/oss-sec/2019/q1/119)
 
-## References
+### References
 
 #### Dockerfile design
 
@@ -432,6 +460,10 @@ kubectl create secret docker-registry regcred --docker-server=https://index.dock
 
 `kubectl get secret regcred --output=yaml`
 
+#### Debug secret was created correctly
+
+`kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode`
+
 #### Add secret to yaml file
 
 ```yaml
@@ -442,11 +474,6 @@ kubectl create secret docker-registry regcred --docker-server=https://index.dock
      imagePullSecrets:
        - name: regcred
 ```
-
-#### Debug secret was created correctly
-
-`kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode`
-
 #### Debug secret was created correctly
 
 ```bash
