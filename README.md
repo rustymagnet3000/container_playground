@@ -1,4 +1,4 @@
-# Docker and Kubenetes
+# Docker and Kubernetes
 <!-- TOC depthfrom:2 depthto:3 withlinks:true updateonsave:true orderedlist:false -->
 
 - [Docker](#docker)
@@ -13,6 +13,8 @@
     - [Remove](#remove)
     - [python](#python)
     - [Sidecar design pattern](#sidecar-design-pattern)
+    - [Docker CVEs](#docker-cves)
+    - [References](#references)
 - [circleci](#circleci)
     - [local setup](#local-setup)
     - [On every config.yaml change, run](#on-every-configyaml-change-run)
@@ -22,8 +24,6 @@
     - [Setup](#setup)
     - [Test dependencies](#test-dependencies)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
-    - [Docker CVEs](#docker-cves)
-    - [References](#references)
 - [Kubernetes](#kubernetes)
     - [Deploy to K8S from Private Dockerhub repo](#deploy-to-k8s-from-private-dockerhub-repo)
 
@@ -313,6 +313,17 @@ There are [lots of design patterns](https://techbeacon.com/enterprise-it/7-conta
 Overview [here](https://containerjournal.com/topics/container-security/tightening-security-with-sidecar-proxies/):
 > `Decoupling` of common tasks to an independent unified service deployed alongside any core application service is known as a “sidecar” architecture.  Primary application in Go.   Existing functionality written in Python to collect logs and metrics.  Offloading that Python code into a sidecar is more efficient than asking the development team to rewrite that functionality in Go.
 
+### Docker CVEs
+
+[CVE-2019-5736: runc container breakout](https://seclists.org/oss-sec/2019/q1/119)
+
+### References
+
+#### Dockerfile design
+
+<https://www.youtube.com/watch?v=15GYSxzdTLQ>
+
+
 ## circleci
 
 ### local setup
@@ -381,16 +392,6 @@ snyk container test $(basename $(pwd)) --file=Dockerfile
 ```bash
 snyk monitor
 ```
-
-### Docker CVEs
-
-[CVE-2019-5736: runc container breakout](https://seclists.org/oss-sec/2019/q1/119)
-
-### References
-
-#### Dockerfile design
-
-<https://www.youtube.com/watch?v=15GYSxzdTLQ>
 
 ## Kubernetes
 
