@@ -1,4 +1,6 @@
-# Docker
+# Docker and Kubenetes
+
+## Docker
 
 ### Getting started
 
@@ -201,6 +203,11 @@ docker push rusty/flasksidecardemo
 
 `docker image history foo/bar:0.2.1 --no-trunc`
 
+#### Pretty Print
+
+`docker history --format "{{.ID}}: {{.CreatedSince}}" foo/bar:0.2.1`
+
+
 ### Audit
 
 #### Logs from Container ID
@@ -356,3 +363,106 @@ snyk monitor
 #### Dockerfile design
 
 <https://www.youtube.com/watch?v=15GYSxzdTLQ>
+
+## Kubernetes
+
+#### Kubernetes Info
+
+`kubectl version -o json`
+
+#### Commands
+
+<https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands>
+
+#### Enable Kubernetes
+
+```bash
+kubectl config get-contexts
+< check Kubernetes is "enabled" inside of `Docker Desktop` >
+kubectl config use-context docker-desktop
+kubectl get nodes
+```
+
+#### Deploy
+
+`kubectl apply -f deploy.yml`
+
+#### Delete deployment
+
+`kubectl delete -f deploy.yml`
+
+#### Get deployments
+
+`kubectl get deployments`
+
+#### Get services
+
+`kubectl get services`
+
+### Deploy to K8S from Private Dockerhub repo
+
+#### No "Ready" pods
+
+```bash
+kubectl apply -f deploy.yml
+
+kubectl get deployments                    
+
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+hello-deployment   0/2     2            0           5m58s
+
+kubectl get pods
+NAME                                READY   STATUS             RESTARTS   AGE
+hello-deployment-54b9b7c848-7z56w   0/1     ImagePullBackOff   0          79m
+hello-deployment-54b9b7c848-plkq7   0/1     ImagePullBackOff   0          79m
+```
+
+#### Create secret from Docker information
+
+```bash
+// not advised, due to env variables
+
+export NAME=xxx
+export PSWD=xxx
+export EMAIL=xxx
+kubectl create secret docker-registry regcred --docker-server=https://index.docker.io/v2/ --docker-username=${NAME} --docker-password=${PSWD} --docker-email=${EMAIL}
+```
+
+#### Get secret
+
+`kubectl get secret regcred --output=yaml`
+
+#### Add secret to yaml file
+
+```yaml
+   spec:
+     containers:
+     - name: app
+       image: "foobar/flasksidecardemo"
+     imagePullSecrets:
+       - name: regcred
+```
+
+#### Debug secret was created correctly
+
+`kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode`
+
+#### Debug secret was created correctly
+
+```bash
+kubectl apply -f deploy.yml 
+
+kubectl get pods       
+NAME                                READY   STATUS              RESTARTS   AGE
+hello-deployment-566f549976-5nsm7   0/1     ContainerCreating   0          6s
+hello-deployment-566f549976-fh6c7   0/1     ContainerCreating   0          6s
+
+
+kubectl get deployments
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+hello-deployment   2/2     2            2           32s
+```
+
+#### Delete secret
+
+`kubectl delete secret regcred`
