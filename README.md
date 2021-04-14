@@ -421,6 +421,10 @@ kubectl get nodes
 
 `kubectl apply -f deploy.yml`
 
+#### Deploy status
+
+`kubectl rollout status deployment/hello-deployment`
+
 #### Delete deployment
 
 `kubectl delete -f deploy.yml`
@@ -433,6 +437,18 @@ kubectl get nodes
 
 `kubectl get services`
 
+#### Get a service
+
+`kubectl get svc hello-svc`
+
+#### Scale
+
+`kubectl scale -n default deployment hello-deployment --replicas=3`
+
+#### Describe deployment
+
+`kubectl describe po hello-deployment`
+
 #### Get pods
 
 ```bash
@@ -443,6 +459,14 @@ hello-deployment-566f549976-fh6c7   1/1     Terminating   0          16h
 hello-deployment-697fc848f5-42swj   2/2     Running       0          9s
 hello-deployment-697fc848f5-cbn86   2/2     Running       0          15s
 ```
+
+#### Get Pods
+
+`kubectl get pods -A -o=custom-columns='DATA:spec.containers[*].image'`
+
+#### All images, grouped by Pod
+
+`kubectl get pods --namespace default --output=custom-columns="NAME:.metadata.name,IMAGE:.spec.containers[*].image"`
 
 ### Parse deploy file ( kubeval )
 
@@ -483,6 +507,7 @@ hello-deployment-54b9b7c848-plkq7   0/1     ImagePullBackOff   0          79m
 
 ```bash
 // not advised, due to env variables
+//  Private Docker Registry FQDN = https://index.docker.io/v2/ for DockerHub
 
 export NAME=xxx
 export PSWD=xxx
@@ -508,6 +533,7 @@ kubectl create secret docker-registry regcred --docker-server=https://index.dock
      imagePullSecrets:
        - name: regcred
 ```
+
 #### Debug secret was created correctly
 
 ```bash
