@@ -26,8 +26,9 @@
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
 - [Kubernetes](#kubernetes)
     - [Deploy and Monitor](#deploy-and-monitor)
-    - [Parse deploy file  kubeval](#parse-deploy-file--kubeval)
-    - [static code analysis  kube-score](#static-code-analysis--kube-score)
+    - [Dashboard](#dashboard)
+    - [Parse deploy file - kubeval](#parse-deploy-file---kubeval)
+    - [static code analysis - kube-score](#static-code-analysis---kube-score)
     - [Deploy to K8S from Private Dockerhub repo](#deploy-to-k8s-from-private-dockerhub-repo)
 
 <!-- /TOC -->
@@ -425,10 +426,6 @@ kubectl get nodes
 
 `kubectl rollout status deployment/hello-deployment`
 
-#### Delete deployment
-
-`kubectl delete -f deploy.yml`
-
 #### Get deployments
 
 `kubectl get deployments`
@@ -449,6 +446,13 @@ kubectl get nodes
 
 `kubectl describe po hello-deployment`
 
+#### Delete deployment
+
+```bash
+kubectl delete -f deploy.yml
+kubectl delete -n default deployment hello-deployment
+```
+
 #### Get pods
 
 ```bash
@@ -468,7 +472,25 @@ hello-deployment-697fc848f5-cbn86   2/2     Running       0          15s
 
 `kubectl get pods --namespace default --output=custom-columns="NAME:.metadata.name,IMAGE:.spec.containers[*].image"`
 
-### Parse deploy file ( kubeval )
+### Dashboard
+
+Great [tutorial](https://andrewlock.net/running-kubernetes-and-the-dashboard-with-docker-desktop/):
+
+kubectl edit deployment kubernetes-dashboard -n kubernetes-dashboard
+
+#### Install
+
+`kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
+
+#### Disabling the login prompt in Kubernetes Dashboard
+
+`kubectl patch deployment kubernetes-dashboard -n kubernetes-dashboard --type 'json' -p '[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--enable-skip-login"}]'`
+
+#### Delete
+
+`kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
+
+### Parse deploy file - kubeval
 
 #### Install
 
@@ -481,7 +503,7 @@ brew install kubeval
 
 `kubeval deploy.yml`
 
-### static code analysis ( kube-score )
+### static code analysis - kube-score
 
 `docker run -v $(pwd):/project zegl/kube-score:v1.10.0 score deploy.yml`
 
