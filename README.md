@@ -25,6 +25,9 @@
     - [Test dependencies](#test-dependencies)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
 - [Kubernetes](#kubernetes)
+    - [Deploy and Monitor](#deploy-and-monitor)
+    - [Parse deploy file  kubeval](#parse-deploy-file--kubeval)
+    - [static code analysis  kube-score](#static-code-analysis--kube-score)
     - [Deploy to K8S from Private Dockerhub repo](#deploy-to-k8s-from-private-dockerhub-repo)
 
 <!-- /TOC -->
@@ -412,6 +415,8 @@ kubectl config use-context docker-desktop
 kubectl get nodes
 ```
 
+### Deploy and Monitor
+
 #### Deploy
 
 `kubectl apply -f deploy.yml`
@@ -427,6 +432,34 @@ kubectl get nodes
 #### Get services
 
 `kubectl get services`
+
+#### Get pods
+
+```bash
+kubectl get pods
+NAME                                READY   STATUS        RESTARTS   AGE
+hello-deployment-566f549976-5nsm7   0/1     Terminating   0          16h
+hello-deployment-566f549976-fh6c7   1/1     Terminating   0          16h
+hello-deployment-697fc848f5-42swj   2/2     Running       0          9s
+hello-deployment-697fc848f5-cbn86   2/2     Running       0          15s
+```
+
+### Parse deploy file ( kubeval )
+
+#### Install
+
+```bash
+brew tap instrumenta/instrumenta
+brew install kubeval
+```
+
+#### Parse
+
+`kubeval deploy.yml`
+
+### static code analysis ( kube-score )
+
+`docker run -v $(pwd):/project zegl/kube-score:v1.10.0 score deploy.yml`
 
 ### Deploy to K8S from Private Dockerhub repo
 
