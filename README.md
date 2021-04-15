@@ -24,12 +24,13 @@
     - [Setup](#setup)
     - [Test dependencies](#test-dependencies)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
+- [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
 - [Kubernetes](#kubernetes)
     - [Deploy and Monitor](#deploy-and-monitor)
+    - [Config](#config)
+    - [autocomplete in zsh](#autocomplete-in-zsh)
     - [Dashboard](#dashboard)
-    - [Parse deploy file - kubeval](#parse-deploy-file---kubeval)
     - [static code analysis - kube-score](#static-code-analysis---kube-score)
-    - [Deploy to K8S from Private Dockerhub repo](#deploy-to-k8s-from-private-dockerhub-repo)
 
 <!-- /TOC -->
 ## Docker
@@ -327,7 +328,6 @@ Overview [here](https://containerjournal.com/topics/container-security/tightenin
 
 <https://www.youtube.com/watch?v=15GYSxzdTLQ>
 
-
 ## circleci
 
 ### local setup
@@ -395,6 +395,20 @@ snyk container test $(basename $(pwd)) --file=Dockerfile
 
 ```bash
 snyk monitor
+```
+
+## Infrastructure as Code scanning
+
+```bash
+// Synk scans individual files
+snyk iac test Kubernetes.yaml
+snyk iac test terraform_file.tf
+```
+
+```bash
+// tfsec scans entire directory of Terraform files
+brew install tfsec
+tfsec .
 ```
 
 ## Kubernetes
@@ -472,6 +486,23 @@ hello-deployment-697fc848f5-cbn86   2/2     Running       0          15s
 
 `kubectl get pods --namespace default --output=custom-columns="NAME:.metadata.name,IMAGE:.spec.containers[*].image"`
 
+### Config
+
+#### View
+
+```bash
+// ref: https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+kubectl config view
+kubectl config view -o jsonpath='{.users[].name}' 
+```
+
+### autocomplete in zsh
+
+```bash
+source <(kubectl completion zsh)  
+echo "[[ $commands[kubectl] ]] && source <(kubectl completion zsh)" >> ~/.zshrc # add autocomplete permanently to your zsh shell
+```
+
 ### Dashboard
 
 Great [tutorial](https://andrewlock.net/running-kubernetes-and-the-dashboard-with-docker-desktop/):
@@ -490,7 +521,10 @@ kubectl edit deployment kubernetes-dashboard -n kubernetes-dashboard
 
 `kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
 
-### Parse deploy file - kubeval
+
+
+
+#### Parse deploy file - kubeval
 
 #### Install
 
@@ -507,9 +541,7 @@ brew install kubeval
 
 `docker run -v $(pwd):/project zegl/kube-score:v1.10.0 score deploy.yml`
 
-### Deploy to K8S from Private Dockerhub repo
-
-#### No "Ready" pods
+#### Deploy to K8S from Private Dockerhub repo
 
 ```bash
 kubectl apply -f deploy.yml
