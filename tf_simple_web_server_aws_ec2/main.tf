@@ -1,3 +1,5 @@
+# https://github.com/gruntwork-io/intro-to-terraform
+
 provider "aws" {
   region = "eu-west-2"
 }
@@ -28,14 +30,17 @@ resource "aws_security_group" "instance" {
   }
 }
 
-variable "server_port" {
-  description = "port used by AWS Public web server"
-  type = number
-  default = 8080
-}
+resource "aws_launch_configuration" "example" {
+    image_id           = "ami-0fbec3e0504ee1970"
+    instance_type = "t2.micro"
+    security_groups = [aws_security_group.instance.id]
 
-output "public_ip" {
-  value = aws_instance.example.public_ip
-  description = "Server's Public IP"
-  sensitive = false
+    user_data = <<-EOF
+            #!/bin/bash
+            echo "Hello RM World" > index.html
+            nohup busybox httpd -f -p "${var.server_port}" &
+            EOF
+    lifecycle {
+        create_before_destroy = true
+    }
 }
