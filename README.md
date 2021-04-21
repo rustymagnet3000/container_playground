@@ -204,7 +204,10 @@ docker push rusty/flasksidecardemo
 
 #### Run service in background
 
-`docker run -d -p 80:8181 blah_swagger/foobar`
+```bash
+docker pull swaggerapi/swagger-editor
+docker run -d -p 7999:8080 swaggerapi/swagger-editor
+```
 
 #### Interactive, detach and allocate Pseudo Terminal
 
@@ -239,7 +242,6 @@ docker push rusty/flasksidecardemo
 #### Pretty Print
 
 `docker history --format "{{.ID}}: {{.CreatedSince}}" foo/bar:0.2.1`
-
 
 ### Audit
 
