@@ -3,6 +3,11 @@ output "s3_bucket_arn" {
   description = "The ARN of the S3 bucket"
 }
 
+output "s3_bucket_arn2" {
+  value       = aws_s3_bucket.terraform_state.arn
+  description = "The duplicated ARN of the S3 bucket"
+}
+
 output "dynamodb_table_name" {
   value       = aws_dynamodb_table.terraform_locks.name
   description = "The name of the DynamoDB table"
