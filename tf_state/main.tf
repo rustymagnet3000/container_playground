@@ -6,7 +6,8 @@ provider "aws" {
 
 resource "aws_s3_bucket" "terraform_state" {
   # Name of bucket
-  bucket = "yd-terraform-up-and-running-state"
+  bucket        = "yd-terraform-up-and-running-state"
+  force_destroy = true
   # Enable versioning so we can see the full revision history of our state files
   versioning {
     enabled = true
