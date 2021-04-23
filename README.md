@@ -22,7 +22,7 @@
     - [Resources](#resources)
 - [Snyk](#snyk)
     - [Setup](#setup)
-    - [Test dependencies](#test-dependencies)
+    - [Verify it works](#verify-it-works)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
 - [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
 - [Kubernetes](#kubernetes)
@@ -376,35 +376,55 @@ circleci local execute -c process.yml --job build-and-test
 ```bash
 brew install npm
 npm install -g snyk
-snyk version
-snyk auth               // prompts for password
-< login via GitHub / Docker account >
+npm i snyk
 ```
 
-### Test dependencies
+### Verify it works
 
 ```bash
-snyk test --docker debian --file=Dockerfile
-snyk test --docker debian --file=Dockerfile --exclude-base-image-vulns
+snyk version
+snyk auth               < login via GitHub / Docker account >
+```
 
+#### Test dependencies
+
+```bash
 // https://snyk.io/blog/the-new-improved-snyk-container-cli/ `container` keyword replaces `--docker`
-
+snyk test --docker debian --file=Dockerfile
+snyk test --docker alpine --file=Dockerfile --exclude-base-image-vulns
+snyk test ionic@1.6.5
 snyk container test busybox
 snyk container test $(basename $(pwd)) --file=Dockerfile
 ```
 
-### Monitor for new vulnerabilities
+#### apply patches to your vulnerable dependencies
+
+`snyk protect`
+
+#### Test Javascript packages via CLI
 
 ```bash
-snyk monitor
+// https://support.snyk.io/hc/en-us/articles/360004712477-Snyk-for-JavaScript
+// Snyk reads `package.json` and `package-lock.json` files, to build a full structured dependency tree.
+cd codeDir
+yarn install       // or 'npm install'
+snyk test --yarn-workspaces --strict-out-of-sync=false --detection-depth=6
+snyk test --yarn-workspaces --strict-out-of-sync=true --detection-depth=6 
 ```
+
+### Monitor for new vulnerabilities
+
+`snyk monitor`
 
 ## Infrastructure as Code scanning
 
 ```bash
-// Synk scans individual files
+// individual files
 snyk iac test Kubernetes.yaml
 snyk iac test terraform_file.tf
+
+// folder
+snyk iac test
 ```
 
 ```bash
