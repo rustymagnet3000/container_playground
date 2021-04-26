@@ -10,7 +10,7 @@
     - [History](#history)
     - [Audit](#audit)
     - [Copy](#copy)
-    - [Remove](#remove)
+    - [Clean-up](#clean-up)
     - [python](#python)
     - [Sidecar design pattern](#sidecar-design-pattern)
     - [Docker CVEs](#docker-cves)
@@ -279,7 +279,15 @@ docker run -d -p 7999:8080 swaggerapi/swagger-editor
 
 `docker stop foobar-service`
 
-### Remove
+### Clean-up
+
+#### Remove all stopped containers
+
+`docker rm $(docker ps -a -q)`
+
+#### Remove all all images not referenced by a container
+
+`docker image prune -all`
 
 #### Container ( removed before Image removal )
 
@@ -289,9 +297,6 @@ docker run -d -p 7999:8080 swaggerapi/swagger-editor
 
 `docker image rm <image id> --force`
 
-#### Remove all stopped containers
-
-`docker rm $(docker ps -a -q)`
 
 #### Remove Image, force
 
