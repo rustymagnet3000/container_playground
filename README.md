@@ -23,6 +23,9 @@
 - [Snyk](#snyk)
     - [Setup](#setup)
     - [Verify it works](#verify-it-works)
+    - [Test dependencies](#test-dependencies)
+    - [apply patches to your vulnerable dependencies](#apply-patches-to-your-vulnerable-dependencies)
+    - [Test Javascript packages via CLI](#test-javascript-packages-via-cli)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
 - [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
 - [Kubernetes](#kubernetes)
@@ -289,6 +292,10 @@ docker run -d -p 7999:8080 swaggerapi/swagger-editor
 
 `docker image prune -all`
 
+#### Removes images created more than 10 days (240h) ago
+
+`docker image prune -a --force --filter "until=240h"`
+
 #### Container ( removed before Image removal )
 
 `docker container rm <container id>`
@@ -391,7 +398,7 @@ snyk version
 snyk auth               < login via GitHub / Docker account >
 ```
 
-#### Test dependencies
+### Test dependencies
 
 ```bash
 // https://snyk.io/blog/the-new-improved-snyk-container-cli/ `container` keyword replaces `--docker`
@@ -402,11 +409,11 @@ snyk container test busybox
 snyk container test $(basename $(pwd)) --file=Dockerfile
 ```
 
-#### apply patches to your vulnerable dependencies
+### apply patches to your vulnerable dependencies
 
 `snyk protect`
 
-#### Test Javascript packages via CLI
+### Test Javascript packages via CLI
 
 ```bash
 // https://support.snyk.io/hc/en-us/articles/360004712477-Snyk-for-JavaScript
