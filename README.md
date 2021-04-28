@@ -401,9 +401,14 @@ snyk auth               < login via GitHub / Docker account >
 ### Test dependencies
 
 ```bash
-// https://snyk.io/blog/the-new-improved-snyk-container-cli/ `container` keyword replaces `--docker`
+synk test
+snyk test $(basename $(pwd))
+snyk test --severity-threshold="high"
 snyk test --docker debian --file=Dockerfile
 snyk test --docker alpine --file=Dockerfile --exclude-base-image-vulns
+snyk test --severity-threshold="high" --docker mhart/alpine-node:12.19.1 --file=Dockerfile --exclude-base-image-vulns --json > snyk.json
+
+
 snyk test ionic@1.6.5
 snyk container test busybox
 snyk container test $(basename $(pwd)) --file=Dockerfile
@@ -415,13 +420,12 @@ snyk container test $(basename $(pwd)) --file=Dockerfile
 
 ### Test Javascript packages via CLI
 
+Snyk reads `package.json` and `package-lock.json` files, to build a full structured [Javascript](https://support.snyk.io/hc/en-us/articles/360004712477-Snyk-for-JavaScript) dependency tree.
+
 ```bash
-// https://support.snyk.io/hc/en-us/articles/360004712477-Snyk-for-JavaScript
-// Snyk reads `package.json` and `package-lock.json` files, to build a full structured dependency tree.
 cd codeDir
 yarn install       // or 'npm install'
-snyk test --yarn-workspaces --strict-out-of-sync=false --detection-depth=6
-snyk test --yarn-workspaces --strict-out-of-sync=true --detection-depth=6 
+snyk test --severity-threshold="high" --json > snyk.json
 ```
 
 ### Monitor for new vulnerabilities
