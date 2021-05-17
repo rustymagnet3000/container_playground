@@ -1,0 +1,24 @@
+# Pull base image ( Dockerhub )
+FROM foobar/circleci:0.1
+
+# virtual environment very useful in this AWS case:
+# ensures newer Boto AWS requirements didn't cause warnings 
+# due to older awscli package inside base image
+RUN apt update && apt install -y python3-venv
+
+# Set virtual environment
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Copy dependencies file
+COPY requirements.txt .
+
+# Install dependencies
+RUN pip install -r requirements.txt
+
+# Copy source code to working directory
+COPY ./src .
+
+# Container start
+CMD [ "python", "./main.py" ]
