@@ -1,0 +1,27 @@
+# Reference: https://pythonspeed.com/articles/pipenv-docker/
+# Install dependencies separately and earlier in Dockerfile to ensure faster build.
+
+# Pull base image
+FROM python:3.9-slim-buster
+
+# Set working directory
+ARG HOME=/home/
+
+# install pipenv
+RUN pip install pipenv
+COPY Pipfile* "${HOME}"
+ENV PIPENV_IGNORE_VIRTUALENVS=1
+
+# Great to debug available python versions from base iamge
+# RUN pipenv --support
+
+# Copy source code to working directory
+COPY ./src "${HOME}"
+
+# Install dependencies
+WORKDIR "$HOME"
+RUN pipenv lock --keep-outdated --requirements > requirements.txt
+RUN pip install -r requirements.txt
+
+# Run script
+CMD ["python", "main.py"]
