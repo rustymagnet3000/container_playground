@@ -1,4 +1,8 @@
 # Reference: https://pythonspeed.com/articles/activate-virtualenv-dockerfile/
+# Problem with pip + requirements.txt == reproducible builds
+# The scheme below always installs the latest version of the dependencies. 
+# if you build the image on a computer that doesn’t have the cache populated, you might get a different set of installed dependencies.
+
 # Pull base image
 FROM python:3.8-slim-buster
 

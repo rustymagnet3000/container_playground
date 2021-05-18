@@ -400,7 +400,7 @@ snyk auth               < login via GitHub / Docker account >
 
 ### Test Python dependencies
 
-If you just have a `requirements.txt` file, this might miss, sub-level dependencies.  You can address this with:
+If you have a hand-crafted `requirements.txt` file, this might not include sub-level dependencies.  You can address this with:
 
 ```bash
 python3 -m pip install --user virtualenv
