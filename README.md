@@ -23,7 +23,7 @@
 - [Snyk](#snyk)
     - [Setup](#setup)
     - [Verify it works](#verify-it-works)
-    - [Test dependencies](#test-dependencies)
+    - [Test Python dependencies](#test-python-dependencies)
     - [apply patches to your vulnerable dependencies](#apply-patches-to-your-vulnerable-dependencies)
     - [Test Javascript packages via CLI](#test-javascript-packages-via-cli)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
@@ -397,6 +397,22 @@ npm i snyk
 snyk version
 snyk auth               < login via GitHub / Docker account >
 ```
+
+### Test Python dependencies
+
+If you just have a `requirements.txt` file, this might miss, sub-level dependencies.  You can address this with:
+
+```bash
+python3 -m pip install --user virtualenv
+python3 -m venv ~/ydvenv
+source ~/ydvenv/bin/activate 		     # activate virtual environment
+pip3 install -r requirements.txt    
+snyk test --file=requirements.txt     # python
+```
+
+Or a package manager:
+
+```bash
 
 ### Test dependencies
 
