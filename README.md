@@ -114,6 +114,13 @@ docker run -it demo_lambda:0.3
 docker run -it demo_lambda:0.3 bash    # shell in container
 ```
 
+#### Build and run and mounting directory for AWS variables
+
+```bash
+docker build -f Dockerfile -t foobar:0.5 .
+docker run -v $HOME/.aws/:/root/.aws/:ro -it foobar:0.3 bash
+```
+
 #### Dockerfile, list, print commands inside Dockerfile and delete
 
 ```bash
