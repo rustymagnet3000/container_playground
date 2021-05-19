@@ -17,8 +17,9 @@
     - [References](#references)
 - [circleci](#circleci)
     - [local setup](#local-setup)
-    - [On every config.yaml change, run](#on-every-configyaml-change-run)
-    - [Environment variables](#environment-variables)
+    - [circleci setup](#circleci-setup)
+    - [Validate config file](#validate-config-file)
+    - [On every config.yaml change](#on-every-configyaml-change)
     - [Resources](#resources)
 - [Snyk](#snyk)
     - [Setup](#setup)
@@ -362,26 +363,47 @@ brew install --ignore-dependencies circleci
 brew upgrade circleci 
 
 circleci version
+```
 
+### circleci setup
+
+Go to web interface for CircleCI. It can auto generate the files and workflow.
+
+Then generate a `Personal Access Token` or `Project Access Token`.
+
+```bash
 circleci setup
- - go to web interface for CircleCI and get Personal Access Token
- - Just press enter on the host
+```
 
+Then check it all worked:
+
+```bash
+cat /Users/foobar/.circleci/cli.yml                               
+host: https://circleci.com
+token: .......66de
+```
+
+### Validate config file
+
+```bash
 circleci context
 circleci config validate
 circleci config validate .circleci/config.yml
 ```
 
-### On every config.yaml change, run
+### On every config.yaml change
 
 ```bash
+circleci config validate
 circleci config process .circleci/config.yml > process.yml
-circleci local execute -c process.yml --job build-and-test    
+circleci local execute -c process.yml --job build
+
+# Environment variable
+circleci local execute \
+ -c process.yml \
+ --job build \
+ --env FOO_TOKEN=${FOO_TOKEN}
 ```
-
-### Environment variables
-
-`circleci local execute -c process.yml --job build_test -e VAR1=FOO`
 
 ### Resources
 
