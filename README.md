@@ -1,4 +1,4 @@
-# Docker and Kubernetes
+# Docker, Containers, Snyk and Kubernetes
 <!-- TOC depthfrom:2 depthto:3 withlinks:true updateonsave:true orderedlist:false -->
 
 - [Docker](#docker)
@@ -23,6 +23,7 @@
 - [Snyk](#snyk)
     - [Setup](#setup)
     - [Verify it works](#verify-it-works)
+    - [Find local auth token](#find-local-auth-token)
     - [Test Python dependencies](#test-python-dependencies)
     - [apply patches to your vulnerable dependencies](#apply-patches-to-your-vulnerable-dependencies)
     - [Test Javascript packages via CLI](#test-javascript-packages-via-cli)
@@ -110,8 +111,8 @@ docker build -f Dockerfile -t demo_lambda:0.3 .
 docker image ls
 
 docker run -it demo_lambda:0.3
-
 docker run -it demo_lambda:0.3 bash    # shell in container
+docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 foobar:0.3 bash
 ```
 
 #### Build and run and mounting directory for AWS variables
@@ -353,10 +354,12 @@ Overview [here](https://containerjournal.com/topics/container-security/tightenin
 
 ### local setup
 
-It was essential that you debug the `config.yaml` file before uploading to circleci.
+It was essential that you debug the `config.yml` file before uploading to circleci.
 
 ```bash
 brew install --ignore-dependencies circleci
+
+brew upgrade circleci 
 
 circleci version
 
@@ -365,8 +368,8 @@ circleci setup
  - Just press enter on the host
 
 circleci context
-
 circleci config validate
+circleci config validate .circleci/config.yml
 ```
 
 ### On every config.yaml change, run
@@ -403,6 +406,21 @@ npm i snyk
 ```bash
 snyk version
 snyk auth               < login via GitHub / Docker account >
+```
+
+### Find local auth token
+
+```bash
+export SNYK_TOKEN=$(jq -r '.api' ~/.config/configstore/snyk.json)
+
+echo ${SNYK_TOKEN}   
+ffffffff-eeee-dddd-cccc-4fd7923c9cc8
+
+cat ~/.config/configstore/snyk.json 
+{
+        "api": "ffffffff-eeee-dddd-cccc-4fd7923c9cc8",
+        "org": "foobar"
+}% 
 ```
 
 ### Test Python dependencies
