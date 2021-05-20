@@ -4,6 +4,7 @@
 - [Docker](#docker)
     - [Getting started](#getting-started)
     - [Local credentials](#local-credentials)
+    - [Lint](#lint)
     - [Build](#build)
     - [General commands](#general-commands)
     - [Run](#run)
@@ -23,6 +24,7 @@
     - [Resources](#resources)
 - [Snyk](#snyk)
     - [Setup](#setup)
+    - [Upgrade](#upgrade)
     - [Verify it works](#verify-it-works)
     - [Find local auth token](#find-local-auth-token)
     - [Test Python dependencies](#test-python-dependencies)
@@ -101,6 +103,19 @@ docker-credential-desktop list | \
         docker-credential-desktop get <<<"$REPLY";
     done
 ```
+
+### Lint
+
+```bash
+brew install hadolint
+hadolint Dockerfile
+```
+
+#### multiple RUN vs single chained RUN
+
+[multiple-run-vs-single-chained-run](https://stackoverflow.com/questions/39223249/multiple-run-vs-single-chained-run-in-dockerfile-which-is-better):
+
+>When possible, I always merge together commands that create files with commands that delete those same files into a single RUN line. This is because each RUN line adds a layer to the image, the output is quite literally the filesystem changes that you could view with docker diff on the temporary container it creates.
 
 ### Build
 
@@ -422,6 +437,10 @@ brew install npm
 npm install -g snyk
 npm i snyk
 ```
+
+### Upgrade
+
+`npm i -g snyk`
 
 ### Verify it works
 
