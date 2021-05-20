@@ -106,10 +106,13 @@ docker-credential-desktop list | \
 
 ### Lint
 
+#### hadolint
+
 ```bash
 brew install hadolint
 hadolint Dockerfile
 ```
+
 
 #### multiple RUN vs single chained RUN
 
@@ -117,34 +120,23 @@ hadolint Dockerfile
 
 >When possible, I always merge together commands that create files with commands that delete those same files into a single RUN line. This is because each RUN line adds a layer to the image, the output is quite literally the filesystem changes that you could view with docker diff on the temporary container it creates.
 
+
 ### Build
 
-#### Build and run
+#### Build options
 
 ```bash
 docker build -f Dockerfile -t demo_lambda:0.3 .
+docker build -f Dockerfile -t demo_lambda:0.9 .  --progress=plain
+```
 
-docker image ls
+#### Run
 
+```bash
 docker run -it demo_lambda:0.3
 docker run -it demo_lambda:0.3 bash    # shell in container
 docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 foobar:0.3 bash
-```
-
-#### Build and run and mounting directory for AWS variables
-
-```bash
-docker build -f Dockerfile -t foobar:0.5 .
-docker run -v $HOME/.aws/:/root/.aws/:ro -it foobar:0.3 bash
-```
-
-#### Dockerfile, list, print commands inside Dockerfile and delete
-
-```bash
-docker build -f DockerfileAlpineNonRoot -t alpine_non_root:0.1 .
-docker image ls
-docker image history alpine_non_root
-docker image rm alpine_non_root:0.1
+docker run -v $HOME/.aws/:/root/.aws/:ro -it foobar:0.3 bash # mounting directory for AWS variables
 ```
 
 #### Order matters
