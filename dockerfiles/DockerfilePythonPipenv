@@ -25,8 +25,7 @@ COPY Pipfile* "${HOME}"
 WORKDIR "$HOME"
 RUN pipenv install --deploy --ignore-pipfile &&\
     pipenv lock --keep-outdated --requirements > requirements.txt &&\
-    pip install --no-cache-dir -r requirements.txt &&\
-    pipenv update
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy source code to working directory
 COPY ./src "${HOME}"
