@@ -28,6 +28,8 @@
     - [Verify it works](#verify-it-works)
     - [Find local auth token](#find-local-auth-token)
     - [Test Python dependencies](#test-python-dependencies)
+    - [Test dependencies](#test-dependencies)
+    - [custom filter results](#custom-filter-results)
     - [apply patches to your vulnerable dependencies](#apply-patches-to-your-vulnerable-dependencies)
     - [Test Javascript packages via CLI](#test-javascript-packages-via-cli)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
@@ -458,34 +460,32 @@ cat ~/.config/configstore/snyk.json
 
 ### Test Python dependencies
 
-If you have a hand-crafted `requirements.txt` file, this might not include sub-level dependencies.  You can address this with:
-
 ```bash
-python3 -m pip install --user virtualenv
-python3 -m venv ~/ydvenv
-source ~/ydvenv/bin/activate 		     # activate virtual environment
-pip3 install -r requirements.txt    
-snyk test --file=requirements.txt     # python
+# poetry
+# this picks all dependencies and sub-dependencies
+snyk test --file=poetry.lock --package-manager=poetry
 ```
-
-Or a package manager:
-
-```bash
 
 ### Test dependencies
 
 ```bash
 synk test
-snyk test $(basename $(pwd))
 snyk test --severity-threshold="high"
-snyk test --docker debian --file=Dockerfile
 snyk test --docker alpine --file=Dockerfile --exclude-base-image-vulns
+snyk test --severity-threshold=critical --docker alpine --file=Dockerfile --json > ~/results.json
 snyk test --severity-threshold="high" --docker mhart/alpine-node:12.19.1 --file=Dockerfile --exclude-base-image-vulns --json > snyk.json
-
-
 snyk test ionic@1.6.5
 snyk container test busybox
 snyk container test $(basename $(pwd)) --file=Dockerfile
+```
+
+### custom filter results
+
+```bash
+git clone https://github.com/snyk-tech-services/snyk-filter.git
+npm install -g
+source ~/.zshrc
+snyk test --json | snyk-filter -f ~/path/to/snyk-filter/sample-filters/example-cvss-9-or-above.yml    
 ```
 
 ### apply patches to your vulnerable dependencies
