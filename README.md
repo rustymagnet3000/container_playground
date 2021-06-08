@@ -31,7 +31,7 @@
     - [apply patches to your vulnerable dependencies](#apply-patches-to-your-vulnerable-dependencies)
     - [Test Javascript packages via CLI](#test-javascript-packages-via-cli)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
-- [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
+    - [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
 - [Kubernetes](#kubernetes)
     - [Deploy and Monitor](#deploy-and-monitor)
     - [Config](#config)
@@ -506,15 +506,18 @@ snyk test --severity-threshold="high" --json > snyk.json
 
 `snyk monitor`
 
-## Infrastructure as Code scanning
+### Infrastructure as Code scanning
 
 ```bash
 // individual files
 snyk iac test Kubernetes.yaml
 snyk iac test terraform_file.tf
 
-// folder
+// folder and sub-folders
 snyk iac test
+snyk iac test | grep '✗'
+snyk iac test --severity-threshold=high
+snyk iac test --severity-threshold=high --json > results.json
 ```
 
 ```bash
