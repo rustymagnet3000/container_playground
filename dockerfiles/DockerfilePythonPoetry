@@ -1,35 +1,35 @@
 # Pull base image ( slim )
 FROM python:3.8-slim
 
-# Setup pipenv to avoid spurious warnings
-ENV LANG en_US.UTF-8 \
- LANGUAGE en_US:en \
- PYTHONDONTWRITEBYTECODE 1 \
- PYTHONFAULTHANDLER 1 \
- PIP_NO_CACHE_DIR=off \
- PIP_DISABLE_PIP_VERSION_CHECK=on \
- PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=on \
+    PYTHONFAULTHANDLER=on \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PYTHONUNBUFFERED=on \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_VERSION=1.1.6
 
 # Set working directory
-ARG HOME=/home/
+ARG HOME=/home
 
 # curl already installed in Base Image
 # get Poetry dependency manager
 RUN curl -sSL "https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3"
 
 # install Poetry
-RUN pip install poetry
+RUN pip install "poetry==${POETRY_VERSION}"
 
 # Install dependencies
 WORKDIR "$HOME"
-COPY poetry.lock pyproject.toml ${HOME}
+COPY poetry.lock pyproject.toml ${HOME}/
 
 # Project initialization:
-RUN poetry install --no-interaction --no-ansi
+RUN poetry install \
+    --no-interaction \
+    --no-ansi
 
 # Copy source code to working directory
 COPY ./src ${HOME}
 
-# ls -l: (home) Pipfile  Pipfile.lock  main.py  requirements.txt
-# Run script outside of pipenv virtual env
+# ls -l: #main.py  poetry.lock  pyproject.toml
 CMD ["python3", "main.py"]
