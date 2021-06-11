@@ -16,6 +16,7 @@
     - [Sidecar design pattern](#sidecar-design-pattern)
     - [Docker CVEs](#docker-cves)
     - [References](#references)
+- [Apache Bench / JMeter to load test a container](#apache-bench--jmeter-to-load-test-a-container)
 - [circleci](#circleci)
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
@@ -122,7 +123,6 @@ hadolint Dockerfile
 
 >When possible, I always merge together commands that create files with commands that delete those same files into a single RUN line. This is because each RUN line adds a layer to the image, the output is quite literally the filesystem changes that you could view with docker diff on the temporary container it creates.
 
-
 ### Build
 
 #### Build options
@@ -138,7 +138,14 @@ docker build -f Dockerfile -t demo_lambda:0.9 .  --progress=plain
 docker run -it demo_lambda:0.3
 docker run -it demo_lambda:0.3 bash    # shell in container
 docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 foobar:0.3 bash
-docker run -v $HOME/.aws/:/root/.aws/:ro -it foobar:0.3 bash # mounting directory for AWS variables
+docker run -v $HOME/.aws/:/root/.aws/:ro -it foobar:0.3 bash # mount directory for AWS variables
+
+# mount file. Better to pass in via Dockerfile but passing is as a command line argument works for some edge cases
+docker run \
+        --env TOKEN=${TOKEN} \
+        -v $(pwd)/Dockerfile:/Dockerfile \
+        -it ${REPONAME}:0.1 \
+        bash
 ```
 
 #### Order matters
@@ -359,6 +366,25 @@ Overview [here](https://containerjournal.com/topics/container-security/tightenin
 #### Dockerfile design
 
 <https://www.youtube.com/watch?v=15GYSxzdTLQ>
+
+## Apache Bench / JMeter to load test a container
+
+```bash
+
+    -n: Number of requests
+    -c: Number of concurrent requests
+    -H: Add header
+    —r: flag to not exit on socket receive errors
+    -k: Use HTTP KeepAlive feature
+    -p: File containing data to POST
+    -T: Content-type header to use for POST/PUT data,
+
+
+#GET with Header
+ab -n 100 -c 10 -H "Accept-Encoding: gzip, deflate" -rk https://0.0.0.0:4000/
+#POST
+ab -n 100 -c 10 -p data.json -T application/json -rk https://0.0.0.0:4000/
+```
 
 ## circleci
 
