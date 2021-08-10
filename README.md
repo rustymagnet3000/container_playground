@@ -2,7 +2,7 @@
 <!-- TOC depthfrom:2 depthto:3 withlinks:true updateonsave:true orderedlist:false -->
 
 - [Docker](#docker)
-    - [Getting started](#getting-started)
+    - [Info](#info)
     - [Local credentials](#local-credentials)
     - [Lint](#lint)
     - [Build](#build)
@@ -42,20 +42,13 @@
     - [Dashboard](#dashboard)
     - [static code analysis - kube-score](#static-code-analysis---kube-score)
 - [Terraform](#terraform)
-    - [Install Lint  macOS](#install-lint--macos)
-    - [Check installed versions](#check-installed-versions)
-    - [Where is lint](#where-is-lint)
-    - [Set Cloud environment  so lint rules work](#set-cloud-environment--so-lint-rules-work)
-    - [Init the lint](#init-the-lint)
-    - [TF file lint](#tf-file-lint)
-    - [Debug Lint](#debug-lint)
+    - [Validate](#validate)
+    - [Lint  macOS](#lint--macos)
 
 <!-- /TOC -->
 ## Docker
 
-### Getting started
-
-#### Info
+### Info
 
 `docker info`
 
@@ -759,11 +752,24 @@ hello-deployment   2/2     2            2           32s
 
 ## Terraform
 
-### Install Lint ( macOS )
+### Validate
+
+#### local files
+
+```bash
+terraform init -backend=false
+terraform validate  
+```
+
+### Lint ( macOS )
 
 `brew install tflint`
 
-### Check installed versions
+#### Upgrade flint
+
+`brew upgrade tflint`
+
+#### Check installed versions
 
 ```bash
 brew list --formulae |
@@ -775,27 +781,35 @@ jq -r '
 '
 ```
 
-### Where is lint
+#### Where is lint
 
 ```bash
 which tflint               
 /usr/local/bin/tflint
 ```
 
-### Set Cloud environment ( so lint rules work )
+#### Set Cloud environment ( so lint rules work )
 
 `vi ~/.tflint.hcl`
 
 Copy in plug-in data from [here](https://github.com/terraform-linters/tflint-ruleset-aws).
 
-### Init the lint
+#### Init the lint
 
 `tflint --init`
 
-### TF file lint
+#### TF file lint
 
-`tflint foobar_file.tf`
+```bash
+tflint foobar_file.tf
 
-### Debug Lint
+# Behind the scenes
+tflint -c ~/.tflint.hcl foobar.tf 
 
-`TFLINT_LOG=debug tflint`
+# Set log level
+tflint --loglevel trace foobar.tf
+
+# Debug
+TFLINT_LOG=debug tflint
+
+```
