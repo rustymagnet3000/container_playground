@@ -41,6 +41,14 @@
     - [autocomplete in zsh](#autocomplete-in-zsh)
     - [Dashboard](#dashboard)
     - [static code analysis - kube-score](#static-code-analysis---kube-score)
+- [Terraform](#terraform)
+    - [Install Lint  macOS](#install-lint--macos)
+    - [Check installed versions](#check-installed-versions)
+    - [Where is lint](#where-is-lint)
+    - [Set Cloud environment  so lint rules work](#set-cloud-environment--so-lint-rules-work)
+    - [Init the lint](#init-the-lint)
+    - [TF file lint](#tf-file-lint)
+    - [Debug Lint](#debug-lint)
 
 <!-- /TOC -->
 ## Docker
@@ -315,7 +323,7 @@ docker run -d -p 7999:8080 swaggerapi/swagger-editor
 
 #### Remove all all images not referenced by a container
 
-`docker image prune -all`
+`docker image prune --all`
 
 #### Removes images created more than 10 days (240h) ago
 
@@ -748,3 +756,46 @@ hello-deployment   2/2     2            2           32s
 #### Delete secret
 
 `kubectl delete secret regcred`
+
+## Terraform
+
+### Install Lint ( macOS )
+
+`brew install tflint`
+
+### Check installed versions
+
+```bash
+brew list --formulae |
+xargs brew info --json |
+jq -r '
+    ["name", "latest", "installed version(s)"],
+    (.[] | [ .name, .versions.stable, (.installed[] | .version) ])
+    | @tsv
+'
+```
+
+### Where is lint
+
+```bash
+which tflint               
+/usr/local/bin/tflint
+```
+
+### Set Cloud environment ( so lint rules work )
+
+`vi ~/.tflint.hcl`
+
+Copy in plug-in data from [here](https://github.com/terraform-linters/tflint-ruleset-aws).
+
+### Init the lint
+
+`tflint --init`
+
+### TF file lint
+
+`tflint foobar_file.tf`
+
+### Debug Lint
+
+`TFLINT_LOG=debug tflint`
