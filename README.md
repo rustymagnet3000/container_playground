@@ -761,6 +761,10 @@ terraform init -backend=false
 terraform validate  
 ```
 
+#### plan changes
+
+terraform plan 
+
 ### Lint ( macOS )
 
 `brew install tflint`
