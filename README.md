@@ -22,6 +22,7 @@
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
     - [On every config.yaml change](#on-every-configyaml-change)
+    - [Share Docker Containers](#share-docker-containers)
     - [Resources](#resources)
 - [Snyk](#snyk)
     - [Setup](#setup)
@@ -440,6 +441,11 @@ circleci local execute \
  --job build \
  --env FOO_TOKEN=${FOO_TOKEN}
 ```
+
+### Share Docker Containers
+
+
+
 
 ### Resources
 
