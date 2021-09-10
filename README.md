@@ -489,8 +489,10 @@ cat ~/.config/configstore/snyk.json
 
 ```bash
 # poetry
-# this picks all dependencies and sub-dependencies
 snyk test --file=poetry.lock --package-manager=poetry
+
+# tell Snyk what python version is installed on the container
+snyk --command=python3 monitor --severity-threshold=high
 ```
 
 ### Test dependencies

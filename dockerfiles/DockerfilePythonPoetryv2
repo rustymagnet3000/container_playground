@@ -1,0 +1,40 @@
+# Pull base image from Docker Hub
+FROM python:3.8-slim
+
+# Setup pipenv to avoid spurious warnings
+ENV PYTHONDONTWRITEBYTECODE=on \
+    PYTHONFAULTHANDLER=on \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PYTHONUNBUFFERED=on \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_VERSION=1.1.6 \
+    POETRY_HOME="/opt/poetry" \
+    POETRY_NO_INTERACTION=1 \
+    PYSETUP_PATH="/opt/pysetup" \
+    VENV_PATH="/opt/pysetup/.venv"
+
+# prepend poetry and venv to path
+ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
+
+# Set home
+ARG HOME=/root/
+
+# install poetry - respects $POETRY_VERSION & $POETRY_HOME
+RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python3
+
+# Copy dependency files as these change less often
+WORKDIR $PYSETUP_PATH
+COPY poetry.lock pyproject.toml ./
+COPY pyproject.toml ${HOME}
+
+# Project initialization:
+RUN poetry config virtualenvs.create true \
+    && poetry install --no-dev
+
+# Copy dependency files as these change less often
+COPY ./src ${HOME}
+
+# ls -l: #main.py  pyproject.toml
+WORKDIR ${HOME}
+CMD ["bash", "-c", "poetry run python3 main.py"]
