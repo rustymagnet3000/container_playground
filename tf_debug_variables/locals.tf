@@ -3,9 +3,15 @@ locals {
     ".es",
     ".fr",
     ".hk",
-    ".ie",
     ".it",
-    ".nl",
-    ".tw"
+    ".nl"
+  ]
+
+  foobar_domains = [
+    "foobar.es",
+    "foobar.hk",
+    "foobar.fr",
+    "foobar.it",
+    "foobar.nl"
   ]
 }
