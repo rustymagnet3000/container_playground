@@ -769,9 +769,17 @@ terraform init -backend=false
 terraform validate  
 ```
 
+#### Debug variables
+
+```bash
+terraform refresh
+terraform show 
+terraform show -json | jq .
+```
+
 #### plan changes
 
-terraform plan 
+terraform plan
 
 ### Lint ( macOS )
 
