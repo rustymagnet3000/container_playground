@@ -7,8 +7,8 @@ output "hello_world" {
   value = "Hello world"
 }
 
-# Iterate over Array of strings
-output "hello_array" {
+# Gets List of strings
+output "get_list" {
   value = local.country_codes
 }
 

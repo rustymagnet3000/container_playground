@@ -777,6 +777,25 @@ terraform show
 terraform show -json | jq .
 ```
 
+#### APIs
+
+```bash
+# Gets List of strings
+value = local.country_codes
+
+# Convert from List of Strings to Map
+value = { for idx, val in local.foobar_domains : idx => val }
+
+# Get List of String values if
+value = [for x in local.foobar_domains : x if x == "foobar.fr"]
+
+# get index
+value = index(local.foobar_domains, "foobar.fr")
+
+# Contains Boolean response
+contains(local.foobar_domains, "foobar.fr")
+```
+
 #### plan changes
 
 terraform plan
