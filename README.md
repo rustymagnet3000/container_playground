@@ -6,6 +6,7 @@
     - [Local credentials](#local-credentials)
     - [Lint](#lint)
     - [Build](#build)
+    - [Run](#run)
     - [General commands](#general-commands)
     - [Run](#run)
     - [History](#history)
@@ -118,7 +119,6 @@ brew install hadolint
 hadolint Dockerfile
 ```
 
-
 #### multiple RUN vs single chained RUN
 
 [multiple-run-vs-single-chained-run](https://stackoverflow.com/questions/39223249/multiple-run-vs-single-chained-run-in-dockerfile-which-is-better):
@@ -130,23 +130,56 @@ hadolint Dockerfile
 #### Build options
 
 ```bash
-docker build -f Dockerfile -t demo_lambda:0.3 .
-docker build -f Dockerfile -t demo_lambda:0.9 .  --progress=plain
+docker build -f Dockerfile -t $(pwd | xargs basename):latest .
+docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
 ```
 
-#### Run
+#### Build secrets
+
+It is easy to let build secrets slip into a layer of a container.
+
+##### Build Docker Image or Download from Dockerhub
+
+`docker-compose -f docker-compose.yml -p foo build`
+
+#### Save Image for inspection
+
+`docker save foo:latest -o ~/foo.tar`
+
+#### Extract the Docker layers
+
+`mkdir ~/foo && tar xf ~/foo.tar -C ~/foo `
+
+#### Search each layer
+`for layer in */layer.tar; do tar -tf $layer | grep -w secret.file && echo $layer; done`
+
+#### Extract where it found secret
+
+If it finds anything, extract it:
+
+`tar xf FFFFFFFFF/layer.tar app/secret.file`
+
+#### Print the secret
+
+`cat app/secret.file`
+
+### Run
 
 ```bash
-docker run -it demo_lambda:0.3
-docker run -it demo_lambda:0.3 bash    # shell in container
-docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 foobar:0.3 bash
-docker run -v $HOME/.aws/:/root/.aws/:ro -it foobar:0.3 bash # mount directory for AWS variables
+# interactive bash shell for container
+docker run -it $(pwd | xargs basename):latest bash
+
+# pass in environment variables
+docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 $(pwd | xargs basename):latest bash
+
+ # mount directory for AWS variables
+docker run -v $HOME/.aws/:/root/.aws/:ro -it $(pwd | xargs basename):latest bash
 
 # mount file. Better to pass in via Dockerfile but passing is as a command line argument works for some edge cases
 docker run \
         --env TOKEN=${TOKEN} \
         -v $(pwd)/Dockerfile:/Dockerfile \
-        -it ${REPONAME}:0.1 \
+        -it ${REPONAME}:latest \
         bash
 ```
 
