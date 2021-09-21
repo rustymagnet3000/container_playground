@@ -8,7 +8,6 @@
     - [Build](#build)
     - [Run](#run)
     - [General commands](#general-commands)
-    - [Run](#run)
     - [History](#history)
     - [Audit](#audit)
     - [Copy](#copy)
@@ -184,6 +183,28 @@ docker run \
         -v $(pwd)/Dockerfile:/Dockerfile \
         -it ${REPONAME}:latest \
         bash
+
+#### Interactive, terminal specify Bash
+docker run -it ubuntu bash
+
+#### Automatically remove container when it exits
+docker run --rm -it ubuntu 
+
+#### Name container for Docker Container ls
+docker run --name foobar -it ubuntu
+
+# Run service in background
+docker pull swaggerapi/swagger-editor
+docker run -d -p 7999:8080 swaggerapi/swagger-editor
+
+# Interactive, detach and allocate Pseudo Terminal
+docker run -idt ..
+
+#### Run in privileged
+docker run --privileged
+
+# App Armor
+docker run --rm -it --security-opt apparmor=docker-default duckll/ctf-box
 ```
 
 #### Order matters
@@ -249,47 +270,6 @@ docker push rusty/flasksidecardemo
 #### Stop container
 
 `docker stop ctf`
-
-### Run
-
-#### Interactive, terminal
-
-`docker run -it ubuntu`
-
-#### Interactive, terminal specify Bash
-
-`docker run -it ubuntu bash`
-
-#### Automatically remove container when it exits
-
-`docker run --rm -it ubuntu`
-
-#### Name container for Docker Container ls
-
-`docker run --name foobar -it ubuntu`
-
-#### Run service in background
-
-```bash
-docker pull swaggerapi/swagger-editor
-docker run -d -p 7999:8080 swaggerapi/swagger-editor
-```
-
-#### Interactive, detach and allocate Pseudo Terminal
-
-`docker run -idt ...`
-
-#### Run in privileged
-
-`docker run --privileged`
-
-#### Run in non-privileged mode
-
-`docker run -idt --name ctf duckll/ctf-box`
-
-#### App Armor
-
-`docker run --rm -it --security-opt apparmor=docker-default duckll/ctf-box`
 
 ### History
 
