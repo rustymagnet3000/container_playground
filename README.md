@@ -17,7 +17,7 @@
     - [Sidecar design pattern](#sidecar-design-pattern)
     - [Docker CVEs](#docker-cves)
     - [References](#references)
-- [Apache Bench / JMeter to load test a container](#apache-bench--jmeter-to-load-test-a-container)
+- [Docker-compose](#docker-compose)
 - [circleci](#circleci)
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
@@ -48,6 +48,8 @@
     - [Lint  macOS](#lint--macos)
 
 <!-- /TOC -->
+
+
 ## Docker
 
 ### Info
@@ -148,9 +150,10 @@ It is easy to let build secrets slip into a layer of a container.
 
 #### Extract the Docker layers
 
-`mkdir ~/foo && tar xf ~/foo.tar -C ~/foo `
+`mkdir ~/foo && tar xf ~/foo.tar -C ~/foo | cd ~/foo`
 
 #### Search each layer
+
 `for layer in */layer.tar; do tar -tf $layer | grep -w secret.file && echo $layer; done`
 
 #### Extract where it found secret
@@ -204,7 +207,7 @@ COPY src/ .
 ```bash
 <Create Private repo on Dockerhub>
 docker build -t rusty/flasksidecardemo .
-sudo lsof -iTCP -sTCP:LISTEN -n -P 	// check no containers running on port
+sudo lsof -iTCP -sTCP:LISTEN -n -P 	# check no containers running on port
 docker run -d -p 5000:5000 rusty/flasksidecardemo
 docker push rusty/flasksidecardemo
 ```
@@ -364,7 +367,6 @@ docker run -d -p 7999:8080 swaggerapi/swagger-editor
 
 `docker image rm <image id> --force`
 
-
 #### Remove Image, force
 
 `docker rmi -f duckll/ctf-box`
@@ -402,23 +404,43 @@ Overview [here](https://containerjournal.com/topics/container-security/tightenin
 
 <https://www.youtube.com/watch?v=15GYSxzdTLQ>
 
-## Apache Bench / JMeter to load test a container
+## Docker-compose
+
+Reference: <https://pythonspeed.com/articles/docker-buildkit/>
+
+#### Build secrets
+
+Environment variable passed into docker-compose file:
+
+```yaml
+services:
+  app:
+    build:
+        context: .
+        args:
+          BUILD_SECRET: ${BUILD_SECRET}
+```
+
+##### Dockerfile
+
+```dockerfile
+# syntax = docker/dockerfile:experimental
+FROM ...
+
+ARG BUILD_SECRET
+COPY get_build_secret.sh .
+RUN --mount=type=secret,id=BUILD_SECRET ./get_build_secret.sh
+RUN install something with BUILD_SECRET
+```
+
+##### get_build_secret.sh
 
 ```bash
-
-    -n: Number of requests
-    -c: Number of concurrent requests
-    -H: Add header
-    —r: flag to not exit on socket receive errors
-    -k: Use HTTP KeepAlive feature
-    -p: File containing data to POST
-    -T: Content-type header to use for POST/PUT data,
-
-
-#GET with Header
-ab -n 100 -c 10 -H "Accept-Encoding: gzip, deflate" -rk https://0.0.0.0:4000/
-#POST
-ab -n 100 -c 10 -p data.json -T application/json -rk https://0.0.0.0:4000/
+#!/bin/bash
+set -euo pipefail
+if [ -f /run/secrets/build_secret ]; then
+   export BUILD_SECRET=$(cat /run/secrets/build_secret)
+fi
 ```
 
 ## circleci
