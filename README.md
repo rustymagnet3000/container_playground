@@ -70,7 +70,6 @@ docker build -t $(pwd | xargs basename) \
 
 # Dockerfile
 
-```dockerfile
 # syntax = docker/dockerfile:experimental
 FROM ...
 
@@ -86,7 +85,7 @@ if [ -f /run/secrets/build_secret ]; then
    export BUILD_SECRET=$(cat /run/secrets/build_secret)
 fi
 
-foo install  ( which uses the BUILD_SECRET)
+foo install < which uses the BUILD_SECRET >
 ```
 
 ### Dockerfile
@@ -222,6 +221,9 @@ mkdir ~/foo && tar xf ~/foo.tar -C ~/foo | cd ~/foo
 # Search each layer
 for layer in */layer.tar; do tar -tf $layer | grep -w secret.file && echo $layer; done
 
+# Or search for a specifc file
+find . -name "*secret*"
+
 # Extract where it found secret
 tar xf FFFFFFFFF/layer.tar app/secret.file
 
@@ -232,14 +234,24 @@ cat app/secret.file
 #### Inspect
 
 ```bash
+# Dive
+brew install dive
+dive docker://$(pwd | xargs basename)
+
 # Image
 docker image history alpine_non_root --no-trunc
 
 # Tag
 docker history foobar:v1 
 
+# If built local folder into image
+docker history $(pwd | xargs basename)
+
 # Print layers
 docker inspect --format='{{json .RootFS.Layers}}' foobar
+
+# Inspect local image
+docker image inspect $(pwd | xargs basename)
 
 # Pretty Print
 docker history --format "{{.ID}}: {{.CreatedSince}}" foo/bar:0.2.1
