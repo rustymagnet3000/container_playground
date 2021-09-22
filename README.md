@@ -6,10 +6,9 @@
     - [Local credentials](#local-credentials)
     - [Lint](#lint)
     - [Build](#build)
+    - [Image introspection](#image-introspection)
     - [Run](#run)
     - [General commands](#general-commands)
-    - [History](#history)
-    - [Audit](#audit)
     - [Copy](#copy)
     - [Clean-up](#clean-up)
     - [python](#python)
@@ -133,37 +132,67 @@ hadolint Dockerfile
 ```bash
 docker build -f Dockerfile -t $(pwd | xargs basename):latest .
 docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
+DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml build --build-arg build_secret=${BUILD_SECRET} --progress=plain --no-cache
 ```
 
 #### Build secrets
 
 It is easy to let build secrets slip into a layer of a container.
 
-##### Build Docker Image or Download from Dockerhub
+```bash
+# Stop secrets leaking in Docker History or an Image Layer
+DOCKER_BUILDKIT=1 \
+docker build -t $(pwd | xargs basename) \
+  --secret id=build_secret,src=build_secret.txt \
+  --progress=plain --no-cache \
+  .
+```
 
-`docker-compose -f docker-compose.yml -p foo build`
+### Image introspection
 
-#### Save Image for inspection
+#### Search for secrets in layers
 
-`docker save foo:latest -o ~/foo.tar`
+```bash
+# Save Image for inspection
+docker save foo:latest -o ~/foo.tar
 
-#### Extract the Docker layers
+# Extract the Docker layers
+mkdir ~/foo && tar xf ~/foo.tar -C ~/foo | cd ~/foo
 
-`mkdir ~/foo && tar xf ~/foo.tar -C ~/foo | cd ~/foo`
+# Search each layer
+for layer in */layer.tar; do tar -tf $layer | grep -w secret.file && echo $layer; done
 
-#### Search each layer
+# Extract where it found secret
+tar xf FFFFFFFFF/layer.tar app/secret.file
 
-`for layer in */layer.tar; do tar -tf $layer | grep -w secret.file && echo $layer; done`
+# Print the secret
+cat app/secret.file
+```
 
-#### Extract where it found secret
+#### Inspect
 
-If it finds anything, extract it:
+```bash
+# Image
+docker image history alpine_non_root --no-trunc
 
-`tar xf FFFFFFFFF/layer.tar app/secret.file`
+# Tag
+docker history foobar:v1 
 
-#### Print the secret
+# Print layers
+docker inspect --format='{{json .RootFS.Layers}}' foobar
 
-`cat app/secret.file`
+# Pretty Print
+docker history --format "{{.ID}}: {{.CreatedSince}}" foo/bar:0.2.1
+
+# Logs from Container ID
+docker logs bd0657a17d54
+
+# check if container is running as Privileged
+docker inspect --format='{{.HostConfig.Privileged}}' <container id>
+
+# Stats
+docker stats < container ID >
+```
 
 ### Run
 
@@ -271,37 +300,7 @@ docker push rusty/flasksidecardemo
 
 `docker stop ctf`
 
-### History
 
-#### Image
-
-`docker image history alpine_non_root`
-
-#### Tag
-
-`docker history foobar:v1`
-
-#### No truncation
-
-`docker image history foo/bar:0.2.1 --no-trunc`
-
-#### Pretty Print
-
-`docker history --format "{{.ID}}: {{.CreatedSince}}" foo/bar:0.2.1`
-
-### Audit
-
-#### Logs from Container ID
-
-`docker logs bd0657a17d54`
-
-#### check if container is running as Privileged
-
-`docker inspect --format='{{.HostConfig.Privileged}}' <container id>`
-
-#### Stats
-
-`docker stats < container ID >`
 
 ### Copy
 
