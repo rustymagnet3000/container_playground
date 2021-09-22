@@ -2,20 +2,17 @@
 <!-- TOC depthfrom:2 depthto:3 withlinks:true updateonsave:true orderedlist:false -->
 
 - [Docker](#docker)
-    - [Info](#info)
-    - [Local credentials](#local-credentials)
-    - [Lint](#lint)
     - [Build](#build)
-    - [Image introspection](#image-introspection)
+    - [Dockerfile](#dockerfile)
     - [Run](#run)
-    - [General commands](#general-commands)
+    - [Local credentials](#local-credentials)
+    - [Image introspection](#image-introspection)
+    - [Containers](#containers)
     - [Copy](#copy)
     - [Clean-up](#clean-up)
-    - [python](#python)
     - [Sidecar design pattern](#sidecar-design-pattern)
     - [Docker CVEs](#docker-cves)
     - [References](#references)
-- [Docker-compose](#docker-compose)
 - [circleci](#circleci)
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
@@ -47,39 +44,140 @@
 
 <!-- /TOC -->
 
-
 ## Docker
 
-### Info
+### Build
 
-`docker info`
+#### Build options
 
-#### Version
+```bash
+docker build -f Dockerfile -t $(pwd | xargs basename):latest .
+docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
+DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml build --build-arg build_secret=${BUILD_SECRET} --progress=plain --no-cache
+```
 
-`docker --version`
+#### Build secrets
 
-#### Check docker is running
+It is easy to let build secrets slip into a layer of a container.
 
-`docker run busybox date`
+```bash
+# Stop secrets leaking in Docker History or an Image Layer
+DOCKER_BUILDKIT=1 \
+docker build -t $(pwd | xargs basename) \
+  --secret id=build_secret,src=build_secret.txt \
+  --progress=plain --no-cache \
+  .
 
-#### Where is docker
+# Dockerfile
 
-`which docker`
+```dockerfile
+# syntax = docker/dockerfile:experimental
+FROM ...
 
-#### List local images
+COPY get_build_secret.sh .
+RUN --mount=type=secret,id=build_secret ./get_build_secret.sh
 
-`docker image ls`
 
-#### Pull ( slim linux image )
+# get_build_secret.sh
 
-`docker pull alpine`
+#!/bin/bash
+set -euo pipefail
+if [ -f /run/secrets/build_secret ]; then
+   export BUILD_SECRET=$(cat /run/secrets/build_secret)
+fi
 
-#### Quick setup
+foo install  ( which uses the BUILD_SECRET)
+```
 
-```docker
-docker pull alpine:latest
+### Dockerfile
 
-docker run -it alpine 
+#### lint
+
+```bash
+brew install hadolint
+hadolint Dockerfile
+```
+
+#### Python - do I use a virtualenv?
+
+<https://stackoverflow.com/questions/29146792/why-people-create-virtualenv-in-a-docker-container>
+
+#### multiple RUN vs single chained RUN
+
+[multiple-run-vs-single-chained-run](https://stackoverflow.com/questions/39223249/multiple-run-vs-single-chained-run-in-dockerfile-which-is-better):
+
+>When possible, I always merge together commands that create files with commands that delete those same files into a single RUN line. This is because each RUN line adds a layer to the image, the output is quite literally the filesystem changes that you could view with docker diff on the temporary container it creates.
+
+#### Order matters
+
+For an efficient use of the caching mechanism, [reference](https://www.docker.com/blog/containerized-python-development-part-1/):
+> place the instructions for layers that change frequently after the ones that incur less changes.
+
+```python
+# Changes less frequently
+COPY requirements.txt .
+
+# install dependencies
+RUN pip install -r requirements.txt
+
+# Changes often
+COPY src/ .
+```
+
+#### Dockerfile design
+
+<https://www.youtube.com/watch?v=15GYSxzdTLQ>
+
+#### BuildKit
+
+Reference: <https://pythonspeed.com/articles/docker-buildkit/>
+
+### Run
+
+```bash
+# interactive bash shell for container
+docker run -it $(pwd | xargs basename):latest bash
+
+# pass in environment variables
+docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 $(pwd | xargs basename):latest bash
+
+ # mount directory for AWS variables
+docker run -v $HOME/.aws/:/root/.aws/:ro -it $(pwd | xargs basename):latest bash
+
+# mount file. Better to pass in via Dockerfile but passing is as a command line argument works for some edge cases
+docker run \
+        --env TOKEN=${TOKEN} \
+        -v $(pwd)/Dockerfile:/Dockerfile \
+        -it ${REPONAME}:latest \
+        bash
+
+#### Interactive, terminal specify Bash
+docker run -it ubuntu bash
+
+#### Automatically remove container when it exits
+docker run --rm -it ubuntu 
+
+#### Name container for Docker Container ls
+docker run --name foobar -it ubuntu
+
+# Run service in background
+docker pull swaggerapi/swagger-editor
+docker run -d -p 7999:8080 swaggerapi/swagger-editor
+
+# Interactive, detach and allocate Pseudo Terminal
+docker run -idt ..
+
+#### Run in privileged
+docker run --privileged
+
+# App Armor
+docker run --rm -it --security-opt apparmor=docker-default duckll/ctf-box
+
+# Start container
+docker start ctf
+
+# Stop container
+docker stop ctf
 ```
 
 ### Local credentials
@@ -108,44 +206,6 @@ docker-credential-desktop list | \
     while read; do
         docker-credential-desktop get <<<"$REPLY";
     done
-```
-
-### Lint
-
-#### hadolint
-
-```bash
-brew install hadolint
-hadolint Dockerfile
-```
-
-#### multiple RUN vs single chained RUN
-
-[multiple-run-vs-single-chained-run](https://stackoverflow.com/questions/39223249/multiple-run-vs-single-chained-run-in-dockerfile-which-is-better):
-
->When possible, I always merge together commands that create files with commands that delete those same files into a single RUN line. This is because each RUN line adds a layer to the image, the output is quite literally the filesystem changes that you could view with docker diff on the temporary container it creates.
-
-### Build
-
-#### Build options
-
-```bash
-docker build -f Dockerfile -t $(pwd | xargs basename):latest .
-docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
-DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml build --build-arg build_secret=${BUILD_SECRET} --progress=plain --no-cache
-```
-
-#### Build secrets
-
-It is easy to let build secrets slip into a layer of a container.
-
-```bash
-# Stop secrets leaking in Docker History or an Image Layer
-DOCKER_BUILDKIT=1 \
-docker build -t $(pwd | xargs basename) \
-  --secret id=build_secret,src=build_secret.txt \
-  --progress=plain --no-cache \
-  .
 ```
 
 ### Image introspection
@@ -194,64 +254,6 @@ docker inspect --format='{{.HostConfig.Privileged}}' <container id>
 docker stats < container ID >
 ```
 
-### Run
-
-```bash
-# interactive bash shell for container
-docker run -it $(pwd | xargs basename):latest bash
-
-# pass in environment variables
-docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 $(pwd | xargs basename):latest bash
-
- # mount directory for AWS variables
-docker run -v $HOME/.aws/:/root/.aws/:ro -it $(pwd | xargs basename):latest bash
-
-# mount file. Better to pass in via Dockerfile but passing is as a command line argument works for some edge cases
-docker run \
-        --env TOKEN=${TOKEN} \
-        -v $(pwd)/Dockerfile:/Dockerfile \
-        -it ${REPONAME}:latest \
-        bash
-
-#### Interactive, terminal specify Bash
-docker run -it ubuntu bash
-
-#### Automatically remove container when it exits
-docker run --rm -it ubuntu 
-
-#### Name container for Docker Container ls
-docker run --name foobar -it ubuntu
-
-# Run service in background
-docker pull swaggerapi/swagger-editor
-docker run -d -p 7999:8080 swaggerapi/swagger-editor
-
-# Interactive, detach and allocate Pseudo Terminal
-docker run -idt ..
-
-#### Run in privileged
-docker run --privileged
-
-# App Armor
-docker run --rm -it --security-opt apparmor=docker-default duckll/ctf-box
-```
-
-#### Order matters
-
-For an efficient use of the caching mechanism, [reference](https://www.docker.com/blog/containerized-python-development-part-1/):
-> place the instructions for layers that change frequently after the ones that incur less changes.
-
-```python
-# Changes less frequently
-COPY requirements.txt .
-
-# install dependencies
-RUN pip install -r requirements.txt
-
-# Changes often
-COPY src/ .
-```
-
 #### Push to DockerHub
 
 ```bash
@@ -262,45 +264,31 @@ docker run -d -p 5000:5000 rusty/flasksidecardemo
 docker push rusty/flasksidecardemo
 ```
 
-### General commands
+### Containers
 
-#### View size of image
+```bash
+# Show Container IDs
+docker ps
 
-`docker image ls`
+# Show Container IDs with memory footprint of the Thin R/W Layer
+docker ps -s
 
-#### Show Container IDs
+# A history of images and container IDs
+docker ps -a
 
-`docker ps`
+# All exited container IDs
+docker ps --all --filter STATUS=exited
 
-#### Show Container IDs with memory footprint of the Thin R/W Layer
+# All running container IDs
+docker ps --all --filter STATUS=running
 
-`docker ps -s`
+# Run interactive Terminal with Cut and Paste
+docker container exec -it ctf bash
 
-#### A history of images and container IDs
+# Stop by Container ID
+docker stop <container id>
 
-`docker ps -a`
-
-#### All exited container IDs
-
-`docker ps --all --filter STATUS=exited`
-
-#### All running container IDs
-
-`docker ps --all --filter STATUS=running`
-
-#### Load service [first time only]
-
-`docker load -i foobar.tar.gz`
-
-#### Start container
-
-`docker start ctf`
-
-#### Stop container
-
-`docker stop ctf`
-
-
+```
 
 ### Copy
 
@@ -312,53 +300,27 @@ docker push rusty/flasksidecardemo
 
 `mount -t tmpfs none /mnt`
 
-#### Run interactive Terminal with Cut and Paste
-
-`docker container exec -it ctf bash`
-
-#### Stop by Container ID
-
-`docker stop <container id>`
-
-#### Stop by Image name
-
-`docker stop foobar-service`
-
 ### Clean-up
 
-#### Remove all stopped containers
+```bash
+# Remove all stopped containers
+docker rm $(docker ps -a -q)
 
-`docker rm $(docker ps -a -q)`
+# Remove all all images not referenced by a container
+docker image prune --all
 
-#### Remove all all images not referenced by a container
+# Removes images created more than 10 days (240h) ago
+docker image prune -a --force --filter "until=240h"
 
-`docker image prune --all`
+# Container ( removed before Image removal )
+docker container rm <container id>
 
-#### Removes images created more than 10 days (240h) ago
+# Remove Image
+docker image rm <image id> --force
 
-`docker image prune -a --force --filter "until=240h"`
-
-#### Container ( removed before Image removal )
-
-`docker container rm <container id>`
-
-#### Remove Image
-
-`docker image rm <image id> --force`
-
-#### Remove Image, force
-
-`docker rmi -f duckll/ctf-box`
-
-#### Security cheat sheet
-
-<https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html>
-
-### python
-
-#### Do I use a virtualenv?
-
-<https://stackoverflow.com/questions/29146792/why-people-create-virtualenv-in-a-docker-container>
+# Remove Image, force
+docker rmi -f duckll/ctf-box
+```
 
 ### Sidecar design pattern
 
@@ -379,48 +341,10 @@ Overview [here](https://containerjournal.com/topics/container-security/tightenin
 
 ### References
 
-#### Dockerfile design
+#### Security cheat sheet
 
-<https://www.youtube.com/watch?v=15GYSxzdTLQ>
+<https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html>
 
-## Docker-compose
-
-Reference: <https://pythonspeed.com/articles/docker-buildkit/>
-
-#### Build secrets
-
-Environment variable passed into docker-compose file:
-
-```yaml
-services:
-  app:
-    build:
-        context: .
-        args:
-          BUILD_SECRET: ${BUILD_SECRET}
-```
-
-##### Dockerfile
-
-```dockerfile
-# syntax = docker/dockerfile:experimental
-FROM ...
-
-ARG BUILD_SECRET
-COPY get_build_secret.sh .
-RUN --mount=type=secret,id=BUILD_SECRET ./get_build_secret.sh
-RUN install something with BUILD_SECRET
-```
-
-##### get_build_secret.sh
-
-```bash
-#!/bin/bash
-set -euo pipefail
-if [ -f /run/secrets/build_secret ]; then
-   export BUILD_SECRET=$(cat /run/secrets/build_secret)
-fi
-```
 
 ## circleci
 
