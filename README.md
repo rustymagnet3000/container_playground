@@ -11,8 +11,6 @@
     - [Copy](#copy)
     - [Clean-up](#clean-up)
     - [Sidecar design pattern](#sidecar-design-pattern)
-    - [Docker CVEs](#docker-cves)
-    - [References](#references)
 - [circleci](#circleci)
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
@@ -26,6 +24,7 @@
     - [Verify it works](#verify-it-works)
     - [Find local auth token](#find-local-auth-token)
     - [Test Python dependencies](#test-python-dependencies)
+    - [Static code scanner](#static-code-scanner)
     - [Test dependencies](#test-dependencies)
     - [custom filter results](#custom-filter-results)
     - [apply patches to your vulnerable dependencies](#apply-patches-to-your-vulnerable-dependencies)
@@ -209,6 +208,28 @@ docker-credential-desktop list | \
 
 ### Image introspection
 
+#### Skopeo
+
+```bash
+brew install skopeo
+
+# inspect an image on Docker Hub
+skopeo inspect docker://docker.io/fedora:latest --override-os linux
+
+# inspect a specific tagged version
+skopeo inspect docker://docker.io/foobar/foo:0.1.0
+
+# inspect latest tag
+skopeo inspect docker://docker.io/foobar/foo:latest
+
+# Copy from Docker Hub
+skopeo copy docker://docker.io/foobar/foo:latest dir:foobar
+
+# Save from Docker Hub
+skopeo copy docker://docker.io/foobar/foo:latest docker-archive:foo.tar
+
+```
+
 #### Search for secrets in layers
 
 ```bash
@@ -347,16 +368,11 @@ There are [lots of design patterns](https://techbeacon.com/enterprise-it/7-conta
 Overview [here](https://containerjournal.com/topics/container-security/tightening-security-with-sidecar-proxies/):
 > `Decoupling` of common tasks to an independent unified service deployed alongside any core application service is known as a “sidecar” architecture.  Primary application in Go.   Existing functionality written in Python to collect logs and metrics.  Offloading that Python code into a sidecar is more efficient than asking the development team to rewrite that functionality in Go.
 
-### Docker CVEs
+#### Security references
 
-[CVE-2019-5736: runc container breakout](https://seclists.org/oss-sec/2019/q1/119)
-
-### References
-
-#### Security cheat sheet
-
-<https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html>
-
+- [NPM_TOKENS_LEAKING_IN_DOCKER](https://www.alexandraulsh.com/2018/06/25/docker-npmrc-security/)
+- [CVE-2019-5736: runc container breakout](https://seclists.org/oss-sec/2019/q1/119)
+- [Docker_Security_Cheat_Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html)
 
 ## circleci
 
@@ -469,6 +485,15 @@ snyk test --file=poetry.lock --package-manager=poetry
 
 # tell Snyk what python version is installed on the container
 snyk --command=python3 monitor --severity-threshold=high
+```
+
+### Static code scanner
+
+```bash
+snyk config set org=playground
+snyk code test
+snyk code test --sarif
+snyk code test --severity-threshold=high
 ```
 
 ### Test dependencies
