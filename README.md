@@ -24,6 +24,7 @@
     - [Verify it works](#verify-it-works)
     - [Find local auth token](#find-local-auth-token)
     - [Test Python dependencies](#test-python-dependencies)
+    - [Static code scanner](#static-code-scanner)
     - [Test dependencies](#test-dependencies)
     - [custom filter results](#custom-filter-results)
     - [apply patches to your vulnerable dependencies](#apply-patches-to-your-vulnerable-dependencies)
@@ -484,6 +485,15 @@ snyk test --file=poetry.lock --package-manager=poetry
 
 # tell Snyk what python version is installed on the container
 snyk --command=python3 monitor --severity-threshold=high
+```
+
+### Static code scanner
+
+```bash
+snyk config set org=playground
+snyk code test
+snyk code test --sarif
+snyk code test --severity-threshold=high
 ```
 
 ### Test dependencies
