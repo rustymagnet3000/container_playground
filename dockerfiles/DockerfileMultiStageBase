@@ -1,0 +1,5 @@
+# Pull Alpine as base image
+FROM alpine:latest
+EXPOSE 8080
+CMD["demo"]
+COPY demo /usr/local/bin/hello

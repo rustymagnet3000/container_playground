@@ -252,6 +252,21 @@ tar xf FFFFFFFFF/layer.tar app/secret.file
 cat app/secret.file
 ```
 
+#### Logs
+
+```bash
+# Keep container alive and echoing data
+docker run -d busybox /bin/sh -c 'i=0; while true; do echo "$i: $(date)"; i=$((i+1)); sleep 1; done'
+
+# Get container ID
+docker ps
+CONTAINER ID   IMAGE 
+9a0c73bcf87d   busybox
+
+# Get logs
+docker logs 9a0c73bcf87d -f
+```
+
 #### Inspect
 
 ```bash
@@ -430,9 +445,6 @@ circleci local execute \
 
 ### Share Docker Containers
 
-
-
-
 ### Resources
 
 <https://circleci.com/developer/orbs/orb/circleci/python>
@@ -485,6 +497,10 @@ snyk test --file=poetry.lock --package-manager=poetry
 
 # tell Snyk what python version is installed on the container
 snyk --command=python3 monitor --severity-threshold=high
+
+# pip
+pip install -r requirements.txt
+snyk test --file=requirements.txt --package-manager=pip --command=python3
 ```
 
 ### Static code scanner
