@@ -15,6 +15,7 @@
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
+    - [Pass dynamic env variable to Docker](#pass-dynamic-env-variable-to-docker)
     - [On every config.yaml change](#on-every-configyaml-change)
     - [Share Docker Containers](#share-docker-containers)
     - [Resources](#resources)
@@ -53,6 +54,16 @@
 docker build -f Dockerfile -t $(pwd | xargs basename):latest .
 docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
 DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml build --build-arg build_secret=${BUILD_SECRET} --progress=plain --no-cache
+```
+
+#### Build argument to env var in container
+
+```bash
+## Docker build
+docker build -f Dockerfile --build-arg FOO_VERSION="$(./foo_echo_version_script)" -t $(pwd | xargs basename):latest . --progress=plain
+## Dockerfile
+ARG FOO_VERSION
+ENV MY_FOO_VERSION ${FOO_VERSION}
 ```
 
 #### Build secrets
@@ -427,6 +438,18 @@ token: .......66de
 circleci context
 circleci config validate
 circleci config validate .circleci/config.yml
+```
+
+### Pass dynamic env variable to Docker
+
+```yaml
+jobs:
+  build_image:
+    <<: *defaults
+    steps:
+      - build_image
+    environment:
+      FOO: $(./foo-script -b version)
 ```
 
 ### On every config.yaml change
