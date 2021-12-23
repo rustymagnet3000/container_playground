@@ -1,5 +1,5 @@
-# Pull base image from Docker Hub
-FROM python:3.8-slim
+# 238MB base image from Docker Hub
+FROM python:3.8-slim-buster
 
 # Setup pipenv to avoid spurious warnings
 ENV PYTHONDONTWRITEBYTECODE=on \
@@ -10,6 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=on \
     POETRY_VERSION=1.1.6 \
     POETRY_HOME="/opt/poetry" \
     POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
     PYSETUP_PATH="/opt/pysetup" \
     VENV_PATH="/opt/pysetup/.venv"
 
@@ -18,14 +19,18 @@ ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
 
 # Set home
 ARG HOME=/root/
+RUN echo "Home is: ${HOME}"
 
-# install poetry - respects $POETRY_VERSION & $POETRY_HOME
-RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python3
+# Install poetry
+RUN pip install poetry
 
 # Copy dependency files as these change less often
+# But the pyproject.toml is more than just dependencies; https://pythonspeed.com/articles/poetry-vs-docker-caching/
 WORKDIR $PYSETUP_PATH
 COPY poetry.lock pyproject.toml ./
-COPY pyproject.toml ${HOME}
+
+# Copy dependency files ( also required for Snyk
+COPY poetry.lock pyproject.toml Dockerfile ${HOME}
 
 # Project initialization:
 RUN poetry config virtualenvs.create true \
@@ -34,6 +39,7 @@ RUN poetry config virtualenvs.create true \
 # Copy dependency files as these change less often
 COPY ./src ${HOME}
 
-# ls -l: #main.py  pyproject.toml
+# ls -l: #main.py  poetry.lock  pyproject.toml
 WORKDIR ${HOME}
-CMD ["bash", "-c", "poetry run python3 main.py"]
+
+CMD ["sh", "-c", "poetry run python3 main.py"]
