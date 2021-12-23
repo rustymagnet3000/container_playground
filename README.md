@@ -15,7 +15,8 @@
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
-    - [Pass dynamic env variable to Docker](#pass-dynamic-env-variable-to-docker)
+    - [Speed](#speed)
+    - [Define what branches you test on](#define-what-branches-you-test-on)
     - [On every config.yaml change](#on-every-configyaml-change)
     - [Share Docker Containers](#share-docker-containers)
     - [Resources](#resources)
@@ -440,16 +441,42 @@ circleci config validate
 circleci config validate .circleci/config.yml
 ```
 
-### Pass dynamic env variable to Docker
+### Speed
+
+Don't chain `requires` unless required:
 
 ```yaml
-jobs:
-  build_image:
-    <<: *defaults
-    steps:
-      - build_image
-    environment:
-      FOO: $(./foo-script -b version)
+workflows:
+  my_workflow:
+    jobs:
+      - prod_image
+      - test_image
+      - push_code:
+          requires:
+          - prod_image
+      - scan_with_some_tool:
+          requires:
+          - test_image
+```
+
+### Define what branches you test on
+
+```yaml
+filter_deployable: &filter_deployable
+  filters:
+    branches:
+      only:
+        - sandbox
+        - master
+workflows:
+  my_workflow:
+    jobs:
+    ...
+    ...
+      - scan_with_some_tool:
+            <<: *filter_deployable
+            requires:
+            - test_image
 ```
 
 ### On every config.yaml change
