@@ -15,6 +15,8 @@
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
+    - [Speed](#speed)
+    - [Define what branches you test on](#define-what-branches-you-test-on)
     - [On every config.yaml change](#on-every-configyaml-change)
     - [Share Docker Containers](#share-docker-containers)
     - [Resources](#resources)
@@ -53,6 +55,16 @@
 docker build -f Dockerfile -t $(pwd | xargs basename):latest .
 docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
 DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml build --build-arg build_secret=${BUILD_SECRET} --progress=plain --no-cache
+```
+
+#### Build argument to env var in container
+
+```bash
+## Docker build
+docker build -f Dockerfile --build-arg FOO_VERSION="$(./foo_echo_version_script)" -t $(pwd | xargs basename):latest . --progress=plain
+## Dockerfile
+ARG FOO_VERSION
+ENV MY_FOO_VERSION ${FOO_VERSION}
 ```
 
 #### Build secrets
@@ -252,6 +264,21 @@ tar xf FFFFFFFFF/layer.tar app/secret.file
 cat app/secret.file
 ```
 
+#### Logs
+
+```bash
+# Keep container alive and echoing data
+docker run -d busybox /bin/sh -c 'i=0; while true; do echo "$i: $(date)"; i=$((i+1)); sleep 1; done'
+
+# Get container ID
+docker ps
+CONTAINER ID   IMAGE 
+9a0c73bcf87d   busybox
+
+# Get logs
+docker logs 9a0c73bcf87d -f
+```
+
 #### Inspect
 
 ```bash
@@ -414,6 +441,44 @@ circleci config validate
 circleci config validate .circleci/config.yml
 ```
 
+### Speed
+
+Don't chain `requires` unless required:
+
+```yaml
+workflows:
+  my_workflow:
+    jobs:
+      - prod_image
+      - test_image
+      - push_code:
+          requires:
+          - prod_image
+      - scan_with_some_tool:
+          requires:
+          - test_image
+```
+
+### Define what branches you test on
+
+```yaml
+filter_deployable: &filter_deployable
+  filters:
+    branches:
+      only:
+        - sandbox
+        - master
+workflows:
+  my_workflow:
+    jobs:
+    ...
+    ...
+      - scan_with_some_tool:
+            <<: *filter_deployable
+            requires:
+            - test_image
+```
+
 ### On every config.yaml change
 
 ```bash
@@ -429,9 +494,6 @@ circleci local execute \
 ```
 
 ### Share Docker Containers
-
-
-
 
 ### Resources
 
@@ -485,6 +547,10 @@ snyk test --file=poetry.lock --package-manager=poetry
 
 # tell Snyk what python version is installed on the container
 snyk --command=python3 monitor --severity-threshold=high
+
+# pip
+pip install -r requirements.txt
+snyk test --file=requirements.txt --package-manager=pip --command=python3
 ```
 
 ### Static code scanner

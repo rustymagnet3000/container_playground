@@ -1,0 +1,17 @@
+# use golang:1.16 as the image and it is large
+# but leverage it to build and test a binary
+FROM golang:1.16 AS build
+ADD . /src
+WORKDIR /src
+RUN go test --cover -v ./...
+RUN go build -v -o hello
+
+# for the binary and container to run in production
+# use a small image ( alpine ) and take bits from the Base build
+# down from 600MB+ to 17MB
+FROM alpine:3.4
+ENV APP=/usr/local/bin/hello
+EXPOSE 8080
+COPY --from=build /src/hello $APP
+RUN chmod +x $APP
+CMD ["/bin/sh", "-c", $APP]
