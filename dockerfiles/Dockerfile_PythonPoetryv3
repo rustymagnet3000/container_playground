@@ -21,8 +21,8 @@ ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
 ARG HOME=/root/
 RUN echo "Home is: ${HOME}"
 
-# Install poetry
-RUN pip install poetry
+# Install poetry. Pin version.
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
 
 # Copy dependency files as these change less often
 # But the pyproject.toml is more than just dependencies; https://pythonspeed.com/articles/poetry-vs-docker-caching/
