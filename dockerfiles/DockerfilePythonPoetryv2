@@ -1,5 +1,5 @@
-# Pull base image from Docker Hub
-FROM python:3.8-slim
+# 243MB base image from Docker Hub
+FROM python:3.8-slim-buster
 
 # Setup pipenv to avoid spurious warnings
 ENV PYTHONDONTWRITEBYTECODE=on \
@@ -17,23 +17,37 @@ ENV PYTHONDONTWRITEBYTECODE=on \
 ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
 
 # Set home
-ARG HOME=/root/
+ARG HOME=/root
+RUN echo "Home: ${HOME}"
 
-# install poetry - respects $POETRY_VERSION & $POETRY_HOME
-RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python3
+# install Zip and keep size of Image down: https://pythonspeed.com/articles/system-packages-docker/
+COPY install_zip.sh .
+RUN chmod +x install_zip.sh
+RUN ./install_zip.sh
 
-# Copy dependency files as these change less often
-WORKDIR $PYSETUP_PATH
-COPY poetry.lock pyproject.toml ./
-COPY pyproject.toml ${HOME}
+# Install poetry. Pin version.
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
 
-# Project initialization:
+# Copy dependency files as these change less often.
+COPY poetry.lock pyproject.toml ${HOME}/
+
+# Poetry defaults to create a virtual env. Added here to make it clear to reader.
+WORKDIR ${HOME}
 RUN poetry config virtualenvs.create true \
+    # --no-dev specifies no development dependencies installed ( i.e. Pytest ).
+    # dev dependencies defined in pyproject.toml section: [tool.poetry.dev-dependencies]
+    # You don't want pytest in a production container
+    # quick and clean to run Pytest as part of CI/CD flow
     && poetry install --no-dev
 
-# Copy dependency files as these change less often
-COPY ./src ${HOME}
+# Copy source files as these more often than dependency files
+# Remember Poetry doesn't expect a /src folder
+# Copy line preserves folder structure expected by Poetry
+COPY code_folder ${HOME}/code_folder/
 
-# ls -l: #main.py  pyproject.toml
-WORKDIR ${HOME}
-CMD ["bash", "-c", "poetry run python3 main.py"]
+# Copy script onto image that generates the Zip file for AWS upload
+COPY zip_for_lambda_upload.sh ${HOME}
+
+# This ensures anybody looking for an interactive Container session can override this step
+RUN ["chmod", "+x", "zip_for_lambda.sh"]
+CMD ["./zip_for_lambda.sh"]

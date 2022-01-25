@@ -5,6 +5,7 @@
     - [Build](#build)
     - [Dockerfile](#dockerfile)
     - [Run](#run)
+    - [CMD, RUN and ENTRYPOINT](#cmd-run-and-entrypoint)
     - [Local credentials](#local-credentials)
     - [Image introspection](#image-introspection)
     - [Containers](#containers)
@@ -167,6 +168,14 @@ docker run -it ubuntu bash
 #### Automatically remove container when it exits
 docker run --rm -it ubuntu 
 
+#### Automatically remove container when it exits after running a shell command
+docker run \
+  --rm \
+  "${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" \
+  /bin/bash -c '
+    echo "Hello there"
+  '
+
 #### Name container for Docker Container ls
 docker run --name foobar -it ubuntu
 
@@ -189,6 +198,34 @@ docker start ctf
 # Stop container
 docker stop ctf
 ```
+
+### CMD, RUN and ENTRYPOINT
+
+Nice article [here](https://goinbigdata.com/docker-run-vs-cmd-vs-entrypoint/):
+
+#### RUN
+
+install your application and packages required.
+
+#### CMD
+
+Set a default command. Executed only when you run container without specifying a command.
+
+```Dockerfile
+CMD echo "Hello world" 
+```
+
+```bash
+docker run -it <image>
+Hello world
+
+docker run -it <image> /bin/bash
+< no Hello world >
+```
+
+#### ENTRYPOINT
+
+Command(s) not ignored when Docker container runs with command line parameters.
 
 ### Local credentials
 
