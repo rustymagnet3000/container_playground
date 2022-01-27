@@ -102,6 +102,26 @@ foo install < which uses the BUILD_SECRET >
 
 ### Dockerfile
 
+#### Pro tip - chown
+
+```bash
+# before
+COPY install_zip.sh .
+RUN chown -R myuser install_zip.sh
+
+# after
+COPY --chown=myuser install_zip.sh .
+```
+
+#### Pro tip - pip caching
+
+`pip` keeps a copy of downloaded packages on disk.  Disable:
+
+```bash
+# No cache and pin version
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
+```
+
 #### lint
 
 ```bash
