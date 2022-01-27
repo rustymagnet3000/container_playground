@@ -5,6 +5,7 @@
     - [Build](#build)
     - [Dockerfile](#dockerfile)
     - [Run](#run)
+    - [CMD, RUN and ENTRYPOINT](#cmd-run-and-entrypoint)
     - [Local credentials](#local-credentials)
     - [Image introspection](#image-introspection)
     - [Containers](#containers)
@@ -25,9 +26,9 @@
     - [Upgrade](#upgrade)
     - [Verify it works](#verify-it-works)
     - [Find local auth token](#find-local-auth-token)
-    - [Test Python dependencies](#test-python-dependencies)
-    - [Static code scanner](#static-code-scanner)
-    - [Test dependencies](#test-dependencies)
+    - [Container scan](#container-scan)
+    - [Code scan](#code-scan)
+    - [Dependency scan](#dependency-scan)
     - [custom filter results](#custom-filter-results)
     - [apply patches to your vulnerable dependencies](#apply-patches-to-your-vulnerable-dependencies)
     - [Test Javascript packages via CLI](#test-javascript-packages-via-cli)
@@ -101,6 +102,26 @@ foo install < which uses the BUILD_SECRET >
 
 ### Dockerfile
 
+#### Pro tip - chown
+
+```bash
+# before
+COPY install_zip.sh .
+RUN chown -R myuser install_zip.sh
+
+# after
+COPY --chown=myuser install_zip.sh .
+```
+
+#### Pro tip - pip caching
+
+`pip` keeps a copy of downloaded packages on disk.  Disable:
+
+```bash
+# No cache and pin version
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
+```
+
 #### lint
 
 ```bash
@@ -167,6 +188,14 @@ docker run -it ubuntu bash
 #### Automatically remove container when it exits
 docker run --rm -it ubuntu 
 
+#### Automatically remove container when it exits after running a shell command
+docker run \
+  --rm \
+  "${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" \
+  /bin/bash -c '
+    echo "Hello there"
+  '
+
 #### Name container for Docker Container ls
 docker run --name foobar -it ubuntu
 
@@ -189,6 +218,34 @@ docker start ctf
 # Stop container
 docker stop ctf
 ```
+
+### CMD, RUN and ENTRYPOINT
+
+Nice article [here](https://goinbigdata.com/docker-run-vs-cmd-vs-entrypoint/):
+
+#### RUN
+
+install your application and packages required.
+
+#### CMD
+
+Set a default command. Executed only when you run container without specifying a command.
+
+```Dockerfile
+CMD echo "Hello world" 
+```
+
+```bash
+docker run -it <image>
+Hello world
+
+docker run -it <image> /bin/bash
+< no Hello world >
+```
+
+#### ENTRYPOINT
+
+Command(s) not ignored when Docker container runs with command line parameters.
 
 ### Local credentials
 
@@ -539,21 +596,18 @@ cat ~/.config/configstore/snyk.json
 }% 
 ```
 
-### Test Python dependencies
+### Container scan
 
 ```bash
-# poetry
-snyk test --file=poetry.lock --package-manager=poetry
-
-# tell Snyk what python version is installed on the container
-snyk --command=python3 monitor --severity-threshold=high
-
-# pip
-pip install -r requirements.txt
-snyk test --file=requirements.txt --package-manager=pip --command=python3
+snyk container test busybox
+snyk test --docker alpine --file=Dockerfile --exclude-base-image-vulns
+snyk container test $(basename $(pwd)) --file=Dockerfile
+snyk test --docker alpine --file=Dockerfile --exclude-base-image-vulns
+snyk container monitor --docker $(basename $(pwd)):latest --file=Dockerfile --debug
+snyk test --severity-threshold=critical --docker alpine --file=Dockerfile --json > ~/results.json
 ```
 
-### Static code scanner
+### Code scan
 
 ```bash
 snyk config set org=playground
@@ -562,18 +616,19 @@ snyk code test --sarif
 snyk code test --severity-threshold=high
 ```
 
-### Test dependencies
+### Dependency scan
 
 ```bash
-synk test
-snyk test --severity-threshold="high"
-snyk test --docker alpine --file=Dockerfile --exclude-base-image-vulns
-snyk test --severity-threshold=critical --docker alpine --file=Dockerfile --json > ~/results.json
-snyk test --severity-threshold="high" --docker mhart/alpine-node:12.19.1 --file=Dockerfile --exclude-base-image-vulns --json > snyk.json
-snyk test ionic@1.6.5
-snyk container test busybox
-snyk container test $(basename $(pwd)) --file=Dockerfile
+# Python and poetry
+snyk test --file=poetry.lock --package-manager=poetry
+
+# pip and Python3
+pip install -r requirements.txt
+
+# force Snyk to consider Python3
+snyk test --file=requirements.txt --package-manager=pip --command=python3
 ```
+
 
 ### custom filter results
 
