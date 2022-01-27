@@ -43,7 +43,7 @@ RUN poetry config virtualenvs.create true \
 
 # Copy source files as these more often than dependency files
 # First line required to preserve Folder Structure that Poetry expects
-COPY security_iam_dormant_account_checker ${HOME}/security_iam_dormant_account_checker/
+COPY foobar ${HOME}/foobar/
 # Copy script onto image that generates the Zip file for AWS upload
 COPY zip_for_lambda_upload.sh ${HOME}
 
