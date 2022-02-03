@@ -35,11 +35,7 @@
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
     - [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
 - [Kubernetes](#kubernetes)
-    - [Deploy and Monitor](#deploy-and-monitor)
-    - [Namespaces](#namespaces)
-    - [autocomplete in zsh](#autocomplete-in-zsh)
-    - [Dashboard](#dashboard)
-    - [static code analysis - kube-score](#static-code-analysis---kube-score)
+    - [Adds-on](#adds-on)
 - [Terraform](#terraform)
     - [Validate](#validate)
     - [Lint  macOS](#lint--macos)
@@ -683,8 +679,6 @@ tfsec .
 - <https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands>
 - <https://kubernetes.io/docs/reference/kubectl/cheatsheet/>
 
-### Deploy and Monitor
-
 ```bash
 # version
 kubectl version
@@ -707,7 +701,19 @@ kubectl rollout status deployment/hello-deployment
 # Get deployments
 kubectl get deployments
 
-# get IP addresses
+# create Pod named "secret" with yaml file
+kubectl apply -f secret-pod.yml
+
+# create Pod manually
+kubectl run mypod --image=controlplane/secrets-demo:1.0
+
+# get env variables from mypod
+kubectl exec -it mypod -- env
+
+#  Find which node your pod is running on
+kubectl describe pods my_pod
+
+# get pods
 kubectl get pods
 kubectl get pods -A -o=custom-columns='DATA:spec.containers[*].image'
 kubectl get pods --namespace default --output=custom-columns="NAME:.metadata.name,IMAGE:.spec.containers[*].image"
@@ -729,7 +735,7 @@ kubectl scale -n default deployment hello-deployment --replicas=3
 
 ```
 
-### Namespaces
+#### Namespaces
 
 Logically group applications, environments, teams, etc.
 
@@ -742,9 +748,36 @@ kubectl get all --namespace=foobar
 kubectl delete namespace foobar
 ```
 
+#### Secrets
+
+```bash
+# create secrets from files
+kubectl create secret generic user-pass --from-file=./username.txt --from-file=./password.txt
+
+# create secrets from env vars
+kubectl create secret docker-registry regcred --docker-server=https://index.docker.io/v2/ --docker-username=${NAME} --docker-password=${PSWD} --docker-email=${EMAIL}
+
+# get secret info ( not the secret )
+kubectl get secrets
+
+# get secret as B64 encoded
+kubectl get secret user-pass -o yaml
+
+# get secret info
+kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode
+
+# meta data about secret
+kubectl describe secret user-pass
+
+# check for issues
+kubectl logs secret
+
+```
+
 #### Delete
 
 ```bash
+kubectl delete all --all    # delete all
 kubectl delete -f deploy.yml
 kubectl delete -n default deployment hello-deployment
 kubectl delete replicaset demo-api
@@ -762,18 +795,18 @@ kubectl config use-context docker-desktop
 kubectl get nodes
 ```
 
-### autocomplete in zsh
+#### autocomplete in zsh
 
 ```bash
 source <(kubectl completion zsh)  
 echo "[[ $commands[kubectl] ]] && source <(kubectl completion zsh)" >> ~/.zshrc # add autocomplete permanently to your zsh shell
 ```
 
-### Dashboard
+#### Dashboard
 
 Great [tutorial](https://andrewlock.net/running-kubernetes-and-the-dashboard-with-docker-desktop/):
 
-kubectl edit deployment kubernetes-dashboard -n kubernetes-dashboard
+`kubectl edit deployment kubernetes-dashboard -n kubernetes-dashboard`
 
 #### Install
 
@@ -787,89 +820,23 @@ kubectl edit deployment kubernetes-dashboard -n kubernetes-dashboard
 
 `kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
 
-#### Parse deploy file - kubeval
+### Adds-on
 
-#### Install
+#### KubeVal
 
 ```bash
 brew tap instrumenta/instrumenta
 brew install kubeval
+kubeval deploy.yml
 ```
 
-#### Parse
+#### Security risk analysis
 
-`kubeval deploy.yml`
+<https://kubesec.io/>
 
-### static code analysis - kube-score
+#### Kube-score
 
 `docker run -v $(pwd):/project zegl/kube-score:v1.10.0 score deploy.yml`
-
-#### Deploy to K8S from Private Dockerhub repo
-
-```bash
-kubectl apply -f deploy.yml
-
-kubectl get deployments                    
-
-NAME               READY   UP-TO-DATE   AVAILABLE   AGE
-hello-deployment   0/2     2            0           5m58s
-
-kubectl get pods
-NAME                                READY   STATUS             RESTARTS   AGE
-hello-deployment-54b9b7c848-7z56w   0/1     ImagePullBackOff   0          79m
-hello-deployment-54b9b7c848-plkq7   0/1     ImagePullBackOff   0          79m
-```
-
-#### Create secret from Docker information
-
-```bash
-// not advised, due to env variables
-//  Private Docker Registry FQDN = https://index.docker.io/v2/ for DockerHub
-
-export NAME=xxx
-export PSWD=xxx
-export EMAIL=xxx
-kubectl create secret docker-registry regcred --docker-server=https://index.docker.io/v2/ --docker-username=${NAME} --docker-password=${PSWD} --docker-email=${EMAIL}
-```
-
-#### Get secret
-
-`kubectl get secret regcred --output=yaml`
-
-#### Debug secret was created correctly
-
-`kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode`
-
-#### Add secret to yaml file
-
-```yaml
-   spec:
-     containers:
-     - name: app
-       image: "foobar/flasksidecardemo"
-     imagePullSecrets:
-       - name: regcred
-```
-
-#### Debug secret was created correctly
-
-```bash
-kubectl apply -f deploy.yml 
-
-kubectl get pods       
-NAME                                READY   STATUS              RESTARTS   AGE
-hello-deployment-566f549976-5nsm7   0/1     ContainerCreating   0          6s
-hello-deployment-566f549976-fh6c7   0/1     ContainerCreating   0          6s
-
-
-kubectl get deployments
-NAME               READY   UP-TO-DATE   AVAILABLE   AGE
-hello-deployment   2/2     2            2           32s
-```
-
-#### Delete secret
-
-`kubectl delete secret regcred`
 
 ## Terraform
 
