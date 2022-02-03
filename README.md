@@ -36,7 +36,7 @@
     - [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
 - [Kubernetes](#kubernetes)
     - [Deploy and Monitor](#deploy-and-monitor)
-    - [Config](#config)
+    - [Namespaces](#namespaces)
     - [autocomplete in zsh](#autocomplete-in-zsh)
     - [Dashboard](#dashboard)
     - [static code analysis - kube-score](#static-code-analysis---kube-score)
@@ -629,7 +629,6 @@ pip install -r requirements.txt
 snyk test --file=requirements.txt --package-manager=pip --command=python3
 ```
 
-
 ### custom filter results
 
 ```bash
@@ -679,87 +678,88 @@ tfsec .
 
 ## Kubernetes
 
-#### Kubernetes Info
-
-`kubectl version -o json`
-
 #### Commands
 
-<https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands>
+- <https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands>
+- <https://kubernetes.io/docs/reference/kubectl/cheatsheet/>
 
-#### Enable Kubernetes
+### Deploy and Monitor
+
+```bash
+# version
+kubectl version
+kubectl version -o json
+
+# view config
+kubectl config view
+kubectl config view
+kubectl config view -o jsonpath='{.users[].name}' 
+
+# Deploy
+kubectl apply -f deploy.yml
+
+# Describe deployment
+kubectl describe po hello-deployment
+
+# Deploy status
+kubectl rollout status deployment/hello-deployment
+
+# Get deployments
+kubectl get deployments
+
+# get IP addresses
+kubectl get pods
+kubectl get pods -A -o=custom-columns='DATA:spec.containers[*].image'
+kubectl get pods --namespace default --output=custom-columns="NAME:.metadata.name,IMAGE:.spec.containers[*].image"
+
+# get IP addresses
+kubectl get pods -o wide
+
+# debug
+watch kubectl get pods -o wide
+
+# Get services
+kubectl get services
+
+# Get a service
+kubectl get svc hello-svc
+
+# Scale
+kubectl scale -n default deployment hello-deployment --replicas=3
+
+```
+
+### Namespaces
+
+Logically group applications, environments, teams, etc.
+
+```bash
+kubectl get namespaces
+kubectl get pods --all-namespaces
+kubectl create namespace foobar
+kubectl run nginx --image=nginx --namespace=foobar
+kubectl get all --namespace=foobar
+kubectl delete namespace foobar
+```
+
+#### Delete
+
+```bash
+kubectl delete -f deploy.yml
+kubectl delete -n default deployment hello-deployment
+kubectl delete replicaset demo-api
+kubectl delete service demo-api
+kubectl delete pod busybox-curl
+kubectl delete namespace my-namespace
+```
+
+#### Enable Kubernetes for Docker Desktop
 
 ```bash
 kubectl config get-contexts
 < check Kubernetes is "enabled" inside of `Docker Desktop` >
 kubectl config use-context docker-desktop
 kubectl get nodes
-```
-
-### Deploy and Monitor
-
-#### Deploy
-
-`kubectl apply -f deploy.yml`
-
-#### Deploy status
-
-`kubectl rollout status deployment/hello-deployment`
-
-#### Get deployments
-
-`kubectl get deployments`
-
-#### Get services
-
-`kubectl get services`
-
-#### Get a service
-
-`kubectl get svc hello-svc`
-
-#### Scale
-
-`kubectl scale -n default deployment hello-deployment --replicas=3`
-
-#### Describe deployment
-
-`kubectl describe po hello-deployment`
-
-#### Delete deployment
-
-```bash
-kubectl delete -f deploy.yml
-kubectl delete -n default deployment hello-deployment
-```
-
-#### Get pods
-
-```bash
-kubectl get pods
-NAME                                READY   STATUS        RESTARTS   AGE
-hello-deployment-566f549976-5nsm7   0/1     Terminating   0          16h
-hello-deployment-566f549976-fh6c7   1/1     Terminating   0          16h
-hello-deployment-697fc848f5-42swj   2/2     Running       0          9s
-hello-deployment-697fc848f5-cbn86   2/2     Running       0          15s
-```
-
-#### Get Pods
-
-`kubectl get pods -A -o=custom-columns='DATA:spec.containers[*].image'`
-
-#### All images, grouped by Pod
-
-`kubectl get pods --namespace default --output=custom-columns="NAME:.metadata.name,IMAGE:.spec.containers[*].image"`
-
-### Config
-
-#### View
-
-```bash
-// ref: https://kubernetes.io/docs/reference/kubectl/cheatsheet/
-kubectl config view
-kubectl config view -o jsonpath='{.users[].name}' 
 ```
 
 ### autocomplete in zsh
@@ -786,9 +786,6 @@ kubectl edit deployment kubernetes-dashboard -n kubernetes-dashboard
 #### Delete
 
 `kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
-
-
-
 
 #### Parse deploy file - kubeval
 
