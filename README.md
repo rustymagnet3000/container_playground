@@ -35,7 +35,15 @@
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
     - [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
 - [Kubernetes](#kubernetes)
-    - [Adds-on](#adds-on)
+    - [Commands](#commands)
+    - [Namespaces](#namespaces)
+    - [Secrets](#secrets)
+    - [Delete](#delete)
+    - [Drain and Cordon](#drain-and-cordon)
+    - [Kubernetes auto-complete](#kubernetes-auto-complete)
+    - [Kubernetes for Docker Desktop](#kubernetes-for-docker-desktop)
+    - [KubeVal](#kubeval)
+    - [KubeSec](#kubesec)
 - [Terraform](#terraform)
     - [Validate](#validate)
     - [Lint  macOS](#lint--macos)
@@ -574,7 +582,7 @@ npm i snyk
 
 ```bash
 snyk version
-snyk auth               < login via GitHub / Docker account >
+snyk auth
 ```
 
 ### Find local auth token
@@ -674,7 +682,7 @@ tfsec .
 
 ## Kubernetes
 
-#### Commands
+### Commands
 
 - <https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands>
 - <https://kubernetes.io/docs/reference/kubectl/cheatsheet/>
@@ -718,6 +726,9 @@ kubectl get pods
 kubectl get pods -A -o=custom-columns='DATA:spec.containers[*].image'
 kubectl get pods --namespace default --output=custom-columns="NAME:.metadata.name,IMAGE:.spec.containers[*].image"
 
+# get Pod registry info
+kubectl describe pod privateer-1 | grep -i image
+
 # get IP addresses
 kubectl get pods -o wide
 
@@ -730,12 +741,15 @@ kubectl get services
 # Get a service
 kubectl get svc hello-svc
 
+# Get ReplicaSets
+kubectl get rs
+
 # Scale
 kubectl scale -n default deployment hello-deployment --replicas=3
 
 ```
 
-#### Namespaces
+### Namespaces
 
 Logically group applications, environments, teams, etc.
 
@@ -748,7 +762,7 @@ kubectl get all --namespace=foobar
 kubectl delete namespace foobar
 ```
 
-#### Secrets
+### Secrets
 
 ```bash
 # create secrets from files
@@ -774,7 +788,7 @@ kubectl logs secret
 
 ```
 
-#### Delete
+### Delete
 
 ```bash
 kubectl delete all --all    # delete all
@@ -786,43 +800,50 @@ kubectl delete pod busybox-curl
 kubectl delete namespace my-namespace
 ```
 
-#### Enable Kubernetes for Docker Desktop
+### Drain and Cordon
 
 ```bash
-kubectl config get-contexts
-< check Kubernetes is "enabled" inside of `Docker Desktop` >
-kubectl config use-context docker-desktop
-kubectl get nodes
+# Drain node in preparation for maintenance
+kubectl drain kubernetes-worker-0 --ignore-daemonsets
+
+# Mark node as schedulable
+kubectl uncordon kubernetes-worker-0
+
+# Mark node as unschedulable
+kubectl cordon kubernetes-worker-0
 ```
 
-#### autocomplete in zsh
+### Kubernetes auto-complete
 
 ```bash
 source <(kubectl completion zsh)  
 echo "[[ $commands[kubectl] ]] && source <(kubectl completion zsh)" >> ~/.zshrc # add autocomplete permanently to your zsh shell
 ```
 
-#### Dashboard
+### Kubernetes for Docker Desktop
 
 Great [tutorial](https://andrewlock.net/running-kubernetes-and-the-dashboard-with-docker-desktop/):
 
-`kubectl edit deployment kubernetes-dashboard -n kubernetes-dashboard`
+```bash
+# check Kubernetes is "enabled" inside of `Docker Desktop
+kubectl config get-contexts
+kubectl config use-context docker-desktop
+kubectl get nodes
 
-#### Install
+# Dashboard
+kubectl edit deployment kubernetes-dashboard -n kubernetes-dashboard
 
-`kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
+# Install
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 
-#### Disabling the login prompt in Kubernetes Dashboard
+# Disabling the login prompt in Kubernetes Dashboard
+kubectl patch deployment kubernetes-dashboard -n kubernetes-dashboard --type 'json' -p '[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--enable-skip-login"}]'
 
-`kubectl patch deployment kubernetes-dashboard -n kubernetes-dashboard --type 'json' -p '[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--enable-skip-login"}]'`
+# Delete
+kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
+```
 
-#### Delete
-
-`kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
-
-### Adds-on
-
-#### KubeVal
+### KubeVal
 
 ```bash
 brew tap instrumenta/instrumenta
@@ -830,7 +851,7 @@ brew install kubeval
 kubeval deploy.yml
 ```
 
-#### Security risk analysis
+### KubeSec
 
 <https://kubesec.io/>
 
