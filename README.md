@@ -34,9 +34,11 @@
     - [Test Javascript packages via CLI](#test-javascript-packages-via-cli)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
     - [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
+- [TwistLock](#twistlock)
 - [Kubernetes](#kubernetes)
     - [Commands](#commands)
     - [Namespaces](#namespaces)
+    - [can-i get](#can-i-get)
     - [Secrets](#secrets)
     - [Delete](#delete)
     - [Drain and Cordon](#drain-and-cordon)
@@ -680,6 +682,23 @@ brew install tfsec
 tfsec .
 ```
 
+## TwistLock
+
+```bash
+# install
+curl --progress-bar -L -k --header "authorization: Bearer API-TOKEN" https://kubernetes:30443/api/v1/util/twistcli > /usr/local/bin/twistcli
+
+chmod a+x /usr/local/bin/twistcli
+
+# scan
+/usr/local/bin/twistcli defender export kubernetes \
+        --address https://kubernetes:30443 \
+        --user ${USERNAME} \
+        --password ${PASSWORD} \
+        --cluster-address twistlock-console \
+        --output defender.yaml
+```
+
 ## Kubernetes
 
 ### Commands
@@ -720,6 +739,9 @@ kubectl exec -it mypod -- env
 
 #  Find which node your pod is running on
 kubectl describe pods my_pod
+
+# get pods regardless of namespace
+kubectl get pods --all-namespaces --output wide
 
 # get pods
 kubectl get pods
@@ -762,6 +784,16 @@ kubectl get all --namespace=foobar
 kubectl delete namespace foobar
 ```
 
+### can-i get
+
+```bash
+# verb, resource, and optional resourceName
+kubectl auth can-i get rs
+
+# verb, resource, and optional resourceName
+kubectl auth can-i --list
+```
+
 ### Secrets
 
 ```bash
@@ -791,7 +823,12 @@ kubectl logs secret
 ### Delete
 
 ```bash
-kubectl delete all --all    # delete all
+# delete all
+kubectl delete all --all    
+
+# delete Pod in Namespace "kube-system"
+kubectl delete pod --namespace kube-system $KUBE_PROXY
+
 kubectl delete -f deploy.yml
 kubectl delete -n default deployment hello-deployment
 kubectl delete replicaset demo-api
