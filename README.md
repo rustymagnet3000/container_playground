@@ -39,7 +39,9 @@
     - [Commands](#commands)
     - [Namespaces](#namespaces)
     - [can-i get](#can-i-get)
+    - [API Server](#api-server)
     - [Secrets](#secrets)
+    - [Logs](#logs)
     - [Delete](#delete)
     - [Drain and Cordon](#drain-and-cordon)
     - [Kubernetes auto-complete](#kubernetes-auto-complete)
@@ -193,6 +195,10 @@ docker run -it ubuntu bash
 
 #### Automatically remove container when it exits
 docker run --rm -it ubuntu 
+
+#### network connections ON THE HOST
+
+docker run -it --net=container:${APISERVER_ID} controlplane/alpine-base
 
 #### Automatically remove container when it exits after running a shell command
 docker run \
@@ -794,6 +800,25 @@ kubectl auth can-i get rs
 kubectl auth can-i --list
 ```
 
+### API Server
+
+```bash
+# API image
+APISERVER_IMAGE=$(docker ps | awk '/k8s_kube-apiserver/{print $2}')
+echo "${APISERVER_IMAGE}"
+
+# API server connections
+sudo lsof -Pan -i tcp | grep 6443
+
+# API server info
+ps faux | sed -E 's,.*(kube-apiserver.*),\1,g;t;d' | grep -v 'g;t;d' | tr ' ' '\n'
+
+# Kill API server and watch restart
+sudo kill -9 "$(ps faux | grep kube-apiserver | head -1 | awk '{print $2}')"
+sleep 1
+docker ps | grep k8s_kube-apiserver
+```
+
 ### Secrets
 
 ```bash
@@ -820,15 +845,33 @@ kubectl logs secret
 
 ```
 
+### Logs
+
+```bash
+# logs of a single container
+WEAVE_POD=$(kubectl get --namespace kube-system pods -l name=weave-net -o json | jq -r '.items[0].metadata.name')
+kubectl logs --namespace kube-system $WEAVE_POD --container weave
+
+# etcd logs
+kubectl logs -f -n kube-system etcd-kubernetes-master
+
+# Follow - real-time container log output
+kubectl logs --namespace kube-system $WEAVE_POD --container weave --follow
+
+# Cluster events
+kubectl get events --sort-by=.metadata.creationTimestamp | tail -n 20
+
+# Info about Kubelet daemon
+systemctl status kubelet.service
+```
+
 ### Delete
 
 ```bash
 # delete all
 kubectl delete all --all    
-
 # delete Pod in Namespace "kube-system"
 kubectl delete pod --namespace kube-system $KUBE_PROXY
-
 kubectl delete -f deploy.yml
 kubectl delete -n default deployment hello-deployment
 kubectl delete replicaset demo-api
