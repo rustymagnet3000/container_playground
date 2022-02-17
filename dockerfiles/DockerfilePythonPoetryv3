@@ -1,0 +1,62 @@
+##############################################################################################
+# 243MB
+# Base image from DockerHub
+##############################################################################################
+FROM python:3.9.10-slim-buster as python-base
+
+# Environment variables
+ENV PYTHONDONTWRITEBYTECODE=on \
+    PYTHONFAULTHANDLER=on \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PYTHONUNBUFFERED=on \
+    POETRY_VERSION=1.1.6 \
+    POETRY_HOME="/opt/poetry" \
+    POETRY_NO_INTERACTION=1 \
+    VENV_PATH="/opt/pysetup/.venv"
+
+# prepend poetry and venv to path
+ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
+
+##############################################################################################
+# A CI/CD Uploader image
+# It prepares the code for zip upload to AWS in the CI/CD stage
+# Poetry and Zip are required to create the final artefact for AWS Lambda
+# These apps do not get shipped into the Lambda
+##############################################################################################
+FROM python-base as image_to_upload_zip
+
+ARG HOME=/root
+WORKDIR ${HOME}
+
+# required to install Zip and Curl.
+# Keeps image size down: https://pythonspeed.com/articles/system-packages-docker/
+# saved about ~20mb
+COPY install_zip.sh .
+
+RUN chmod +x install_zip.sh && \
+  ./install_zip.sh && \
+  rm -f install_zip.sh
+
+# Install poetry. Pin version.  Respects $POETRY_VERSION & $POETRY_HOME
+RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
+
+# Copy dependency files as these change less often
+COPY poetry.lock pyproject.toml ./
+
+# Poetry defaults to create a virtual env
+RUN poetry config virtualenvs.create false \
+    # --no-dev specifies no development dependencies installed ( i.e. Pytest ).
+    # dev dependencies defined in pyproject.toml section: [tool.poetry.dev-dependencies]
+    # You don't want pytest in a production container
+    && poetry install --no-dev \
+    && rm -rf ~/.cache/pypoetry/{cache,artifacts}
+
+# Copy source files as these more often than dependency files
+# First line required to preserve Folder Structure that Poetry expects
+COPY foobar ${HOME}/foobar/
+
+# Copy script onto image that generates the Zip file for AWS upload
+COPY zip_for_lambda_upload.sh lambda_function.py ${HOME}/
+
+RUN chmod +x zip_for_lambda_upload.sh
+CMD ["./zip_for_lambda_upload.sh"]
