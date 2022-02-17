@@ -13,6 +13,7 @@
     - [Clean-up](#clean-up)
     - [Sidecar design pattern](#sidecar-design-pattern)
 - [circleci](#circleci)
+    - [Pass values from Docker Container to Host](#pass-values-from-docker-container-to-host)
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
@@ -44,7 +45,7 @@
     - [Logs](#logs)
     - [Delete](#delete)
     - [Drain and Cordon](#drain-and-cordon)
-    - [Kubernetes auto-complete](#kubernetes-auto-complete)
+    - [Kubernetes auto complete](#kubernetes-auto-complete)
     - [Kubernetes for Docker Desktop](#kubernetes-for-docker-desktop)
     - [KubeVal](#kubeval)
     - [KubeSec](#kubesec)
@@ -182,6 +183,12 @@ docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 $(pwd | xargs basena
 
  # mount directory for AWS variables
 docker run -v $HOME/.aws/:/root/.aws/:ro -it $(pwd | xargs basename):latest bash
+
+# get file from Container to Host
+  # inside Dockerfile: 
+CMD ["./create_zip_file.sh"]
+  # to get the zip file mount the dir/file to host 
+docker run --rm -v /tmp/my_host:/tmp/my_container $(pwd | xargs basename):latest
 
 # mount file. Better to pass in via Dockerfile but passing is as a command line argument works for some edge cases
 docker run \
@@ -471,6 +478,27 @@ Overview [here](https://containerjournal.com/topics/container-security/tightenin
 - [Docker_Security_Cheat_Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html)
 
 ## circleci
+
+### Pass values from Docker Container to Host
+
+I struggled for hours with this.  I expected that `docker run -v /tmp:/data $(pwd | xargs basename):latest` would pass all files from `data` on the Container to the `tmp` folder of the Host.  That didn't happen.
+
+The reason is referenced in the [tech documents](https://circleci.com/docs/2.0/building-docker-images/):
+
+>It is not possible to mount a volume from your job space into a container in Remote Docker (and vice versa).
+
+The answer is simpler:
+
+```yaml
+- run: |
+    # start container with the application
+    # make sure you're not using `--rm` option
+    docker run --name app app-image:1.2.3
+
+- run: |
+    # after application container finishes, copy artifacts directly from it
+    docker cp app:/output /path/in/your/job/space
+```
 
 ### local setup
 
@@ -893,7 +921,7 @@ kubectl uncordon kubernetes-worker-0
 kubectl cordon kubernetes-worker-0
 ```
 
-### Kubernetes auto-complete
+### Kubernetes auto complete
 
 ```bash
 source <(kubectl completion zsh)  
