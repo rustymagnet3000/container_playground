@@ -38,6 +38,7 @@
 - [TwistLock](#twistlock)
 - [Kubernetes](#kubernetes)
     - [Commands](#commands)
+    - [Pod Creation](#pod-creation)
     - [Namespaces](#namespaces)
     - [can-i get](#can-i-get)
     - [API Server](#api-server)
@@ -804,6 +805,10 @@ kubectl get rs
 kubectl scale -n default deployment hello-deployment --replicas=3
 
 ```
+
+### Pod Creation
+
+![PodCreation](.images/pod_creation.png)
 
 ### Namespaces
 
