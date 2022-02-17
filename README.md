@@ -13,6 +13,7 @@
     - [Clean-up](#clean-up)
     - [Sidecar design pattern](#sidecar-design-pattern)
 - [circleci](#circleci)
+    - [Pass values from Docker Container to Host](#pass-values-from-docker-container-to-host)
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
@@ -34,12 +35,21 @@
     - [Test Javascript packages via CLI](#test-javascript-packages-via-cli)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
     - [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
+- [TwistLock](#twistlock)
 - [Kubernetes](#kubernetes)
-    - [Deploy and Monitor](#deploy-and-monitor)
-    - [Config](#config)
-    - [autocomplete in zsh](#autocomplete-in-zsh)
-    - [Dashboard](#dashboard)
-    - [static code analysis - kube-score](#static-code-analysis---kube-score)
+    - [Commands](#commands)
+    - [Pod Creation](#pod-creation)
+    - [Namespaces](#namespaces)
+    - [can-i get](#can-i-get)
+    - [API Server](#api-server)
+    - [Secrets](#secrets)
+    - [Logs](#logs)
+    - [Delete](#delete)
+    - [Drain and Cordon](#drain-and-cordon)
+    - [Kubernetes auto complete](#kubernetes-auto-complete)
+    - [Kubernetes for Docker Desktop](#kubernetes-for-docker-desktop)
+    - [KubeVal](#kubeval)
+    - [KubeSec](#kubesec)
 - [Terraform](#terraform)
     - [Validate](#validate)
     - [Lint  macOS](#lint--macos)
@@ -175,6 +185,12 @@ docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 $(pwd | xargs basena
  # mount directory for AWS variables
 docker run -v $HOME/.aws/:/root/.aws/:ro -it $(pwd | xargs basename):latest bash
 
+# get file from Container to Host
+  # inside Dockerfile: 
+CMD ["./create_zip_file.sh"]
+  # to get the zip file mount the dir/file to host 
+docker run --rm -v /tmp/my_host:/tmp/my_container $(pwd | xargs basename):latest
+
 # mount file. Better to pass in via Dockerfile but passing is as a command line argument works for some edge cases
 docker run \
         --env TOKEN=${TOKEN} \
@@ -187,6 +203,10 @@ docker run -it ubuntu bash
 
 #### Automatically remove container when it exits
 docker run --rm -it ubuntu 
+
+#### network connections ON THE HOST
+
+docker run -it --net=container:${APISERVER_ID} controlplane/alpine-base
 
 #### Automatically remove container when it exits after running a shell command
 docker run \
@@ -460,6 +480,27 @@ Overview [here](https://containerjournal.com/topics/container-security/tightenin
 
 ## circleci
 
+### Pass values from Docker Container to Host
+
+I struggled for hours with this.  I expected that `docker run -v /tmp:/data $(pwd | xargs basename):latest` would pass all files from `data` on the Container to the `tmp` folder of the Host.  That didn't happen.
+
+The reason is referenced in the [tech documents](https://circleci.com/docs/2.0/building-docker-images/):
+
+>It is not possible to mount a volume from your job space into a container in Remote Docker (and vice versa).
+
+The answer is simpler:
+
+```yaml
+- run: |
+    # start container with the application
+    # make sure you're not using `--rm` option
+    docker run --name app app-image:1.2.3
+
+- run: |
+    # after application container finishes, copy artifacts directly from it
+    docker cp app:/output /path/in/your/job/space
+```
+
 ### local setup
 
 It was essential that you debug the `config.yml` file before uploading to circleci.
@@ -578,7 +619,7 @@ npm i snyk
 
 ```bash
 snyk version
-snyk auth               < login via GitHub / Docker account >
+snyk auth
 ```
 
 ### Find local auth token
@@ -629,7 +670,6 @@ pip install -r requirements.txt
 snyk test --file=requirements.txt --package-manager=pip --command=python3
 ```
 
-
 ### custom filter results
 
 ```bash
@@ -677,202 +717,260 @@ brew install tfsec
 tfsec .
 ```
 
+## TwistLock
+
+```bash
+# install
+curl --progress-bar -L -k --header "authorization: Bearer API-TOKEN" https://kubernetes:30443/api/v1/util/twistcli > /usr/local/bin/twistcli
+
+chmod a+x /usr/local/bin/twistcli
+
+# scan
+/usr/local/bin/twistcli defender export kubernetes \
+        --address https://kubernetes:30443 \
+        --user ${USERNAME} \
+        --password ${PASSWORD} \
+        --cluster-address twistlock-console \
+        --output defender.yaml
+```
+
 ## Kubernetes
 
-#### Kubernetes Info
+### Commands
 
-`kubectl version -o json`
-
-#### Commands
-
-<https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands>
-
-#### Enable Kubernetes
+- <https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands>
+- <https://kubernetes.io/docs/reference/kubectl/cheatsheet/>
 
 ```bash
-kubectl config get-contexts
-< check Kubernetes is "enabled" inside of `Docker Desktop` >
-kubectl config use-context docker-desktop
-kubectl get nodes
-```
+# version
+kubectl version
+kubectl version -o json
 
-### Deploy and Monitor
-
-#### Deploy
-
-`kubectl apply -f deploy.yml`
-
-#### Deploy status
-
-`kubectl rollout status deployment/hello-deployment`
-
-#### Get deployments
-
-`kubectl get deployments`
-
-#### Get services
-
-`kubectl get services`
-
-#### Get a service
-
-`kubectl get svc hello-svc`
-
-#### Scale
-
-`kubectl scale -n default deployment hello-deployment --replicas=3`
-
-#### Describe deployment
-
-`kubectl describe po hello-deployment`
-
-#### Delete deployment
-
-```bash
-kubectl delete -f deploy.yml
-kubectl delete -n default deployment hello-deployment
-```
-
-#### Get pods
-
-```bash
-kubectl get pods
-NAME                                READY   STATUS        RESTARTS   AGE
-hello-deployment-566f549976-5nsm7   0/1     Terminating   0          16h
-hello-deployment-566f549976-fh6c7   1/1     Terminating   0          16h
-hello-deployment-697fc848f5-42swj   2/2     Running       0          9s
-hello-deployment-697fc848f5-cbn86   2/2     Running       0          15s
-```
-
-#### Get Pods
-
-`kubectl get pods -A -o=custom-columns='DATA:spec.containers[*].image'`
-
-#### All images, grouped by Pod
-
-`kubectl get pods --namespace default --output=custom-columns="NAME:.metadata.name,IMAGE:.spec.containers[*].image"`
-
-### Config
-
-#### View
-
-```bash
-// ref: https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+# view config
+kubectl config view
 kubectl config view
 kubectl config view -o jsonpath='{.users[].name}' 
+
+# Deploy
+kubectl apply -f deploy.yml
+
+# Describe deployment
+kubectl describe po hello-deployment
+
+# Deploy status
+kubectl rollout status deployment/hello-deployment
+
+# Get deployments
+kubectl get deployments
+
+# create Pod named "secret" with yaml file
+kubectl apply -f secret-pod.yml
+
+# create Pod manually
+kubectl run mypod --image=controlplane/secrets-demo:1.0
+
+# get env variables from mypod
+kubectl exec -it mypod -- env
+
+#  Find which node your pod is running on
+kubectl describe pods my_pod
+
+# get pods regardless of namespace
+kubectl get pods --all-namespaces --output wide
+
+# get pods
+kubectl get pods
+kubectl get pods -A -o=custom-columns='DATA:spec.containers[*].image'
+kubectl get pods --namespace default --output=custom-columns="NAME:.metadata.name,IMAGE:.spec.containers[*].image"
+
+# get Pod registry info
+kubectl describe pod privateer-1 | grep -i image
+
+# get IP addresses
+kubectl get pods -o wide
+
+# debug
+watch kubectl get pods -o wide
+
+# Get services
+kubectl get services
+
+# Get a service
+kubectl get svc hello-svc
+
+# Get ReplicaSets
+kubectl get rs
+
+# Scale
+kubectl scale -n default deployment hello-deployment --replicas=3
+
 ```
 
-### autocomplete in zsh
+### Pod Creation
+
+![PodCreation](.images/pod_creation.png)
+
+### Namespaces
+
+Logically group applications, environments, teams, etc.
+
+```bash
+kubectl get namespaces
+kubectl get pods --all-namespaces
+kubectl create namespace foobar
+kubectl run nginx --image=nginx --namespace=foobar
+kubectl get all --namespace=foobar
+kubectl delete namespace foobar
+```
+
+### can-i get
+
+```bash
+# verb, resource, and optional resourceName
+kubectl auth can-i get rs
+
+# verb, resource, and optional resourceName
+kubectl auth can-i --list
+```
+
+### API Server
+
+```bash
+# API image
+APISERVER_IMAGE=$(docker ps | awk '/k8s_kube-apiserver/{print $2}')
+echo "${APISERVER_IMAGE}"
+
+# API server connections
+sudo lsof -Pan -i tcp | grep 6443
+
+# API server info
+ps faux | sed -E 's,.*(kube-apiserver.*),\1,g;t;d' | grep -v 'g;t;d' | tr ' ' '\n'
+
+# Kill API server and watch restart
+sudo kill -9 "$(ps faux | grep kube-apiserver | head -1 | awk '{print $2}')"
+sleep 1
+docker ps | grep k8s_kube-apiserver
+```
+
+### Secrets
+
+```bash
+# create secrets from files
+kubectl create secret generic user-pass --from-file=./username.txt --from-file=./password.txt
+
+# create secrets from env vars
+kubectl create secret docker-registry regcred --docker-server=https://index.docker.io/v2/ --docker-username=${NAME} --docker-password=${PSWD} --docker-email=${EMAIL}
+
+# get secret info ( not the secret )
+kubectl get secrets
+
+# get secret as B64 encoded
+kubectl get secret user-pass -o yaml
+
+# get secret info
+kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode
+
+# meta data about secret
+kubectl describe secret user-pass
+
+# check for issues
+kubectl logs secret
+
+```
+
+### Logs
+
+```bash
+# logs of a single container
+WEAVE_POD=$(kubectl get --namespace kube-system pods -l name=weave-net -o json | jq -r '.items[0].metadata.name')
+kubectl logs --namespace kube-system $WEAVE_POD --container weave
+
+# etcd logs
+kubectl logs -f -n kube-system etcd-kubernetes-master
+
+# Follow - real-time container log output
+kubectl logs --namespace kube-system $WEAVE_POD --container weave --follow
+
+# Cluster events
+kubectl get events --sort-by=.metadata.creationTimestamp | tail -n 20
+
+# Info about Kubelet daemon
+systemctl status kubelet.service
+```
+
+### Delete
+
+```bash
+# delete all
+kubectl delete all --all    
+# delete Pod in Namespace "kube-system"
+kubectl delete pod --namespace kube-system $KUBE_PROXY
+kubectl delete -f deploy.yml
+kubectl delete -n default deployment hello-deployment
+kubectl delete replicaset demo-api
+kubectl delete service demo-api
+kubectl delete pod busybox-curl
+kubectl delete namespace my-namespace
+```
+
+### Drain and Cordon
+
+```bash
+# Drain node in preparation for maintenance
+kubectl drain kubernetes-worker-0 --ignore-daemonsets
+
+# Mark node as schedulable
+kubectl uncordon kubernetes-worker-0
+
+# Mark node as unschedulable
+kubectl cordon kubernetes-worker-0
+```
+
+### Kubernetes auto complete
 
 ```bash
 source <(kubectl completion zsh)  
 echo "[[ $commands[kubectl] ]] && source <(kubectl completion zsh)" >> ~/.zshrc # add autocomplete permanently to your zsh shell
 ```
 
-### Dashboard
+### Kubernetes for Docker Desktop
 
 Great [tutorial](https://andrewlock.net/running-kubernetes-and-the-dashboard-with-docker-desktop/):
 
+```bash
+# check Kubernetes is "enabled" inside of `Docker Desktop
+kubectl config get-contexts
+kubectl config use-context docker-desktop
+kubectl get nodes
+
+# Dashboard
 kubectl edit deployment kubernetes-dashboard -n kubernetes-dashboard
 
-#### Install
+# Install
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
 
-`kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
+# Disabling the login prompt in Kubernetes Dashboard
+kubectl patch deployment kubernetes-dashboard -n kubernetes-dashboard --type 'json' -p '[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--enable-skip-login"}]'
 
-#### Disabling the login prompt in Kubernetes Dashboard
+# Delete
+kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
+```
 
-`kubectl patch deployment kubernetes-dashboard -n kubernetes-dashboard --type 'json' -p '[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--enable-skip-login"}]'`
-
-#### Delete
-
-`kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml`
-
-
-
-
-#### Parse deploy file - kubeval
-
-#### Install
+### KubeVal
 
 ```bash
 brew tap instrumenta/instrumenta
 brew install kubeval
+kubeval deploy.yml
 ```
 
-#### Parse
+### KubeSec
 
-`kubeval deploy.yml`
+<https://kubesec.io/>
 
-### static code analysis - kube-score
+#### Kube-score
 
 `docker run -v $(pwd):/project zegl/kube-score:v1.10.0 score deploy.yml`
-
-#### Deploy to K8S from Private Dockerhub repo
-
-```bash
-kubectl apply -f deploy.yml
-
-kubectl get deployments                    
-
-NAME               READY   UP-TO-DATE   AVAILABLE   AGE
-hello-deployment   0/2     2            0           5m58s
-
-kubectl get pods
-NAME                                READY   STATUS             RESTARTS   AGE
-hello-deployment-54b9b7c848-7z56w   0/1     ImagePullBackOff   0          79m
-hello-deployment-54b9b7c848-plkq7   0/1     ImagePullBackOff   0          79m
-```
-
-#### Create secret from Docker information
-
-```bash
-// not advised, due to env variables
-//  Private Docker Registry FQDN = https://index.docker.io/v2/ for DockerHub
-
-export NAME=xxx
-export PSWD=xxx
-export EMAIL=xxx
-kubectl create secret docker-registry regcred --docker-server=https://index.docker.io/v2/ --docker-username=${NAME} --docker-password=${PSWD} --docker-email=${EMAIL}
-```
-
-#### Get secret
-
-`kubectl get secret regcred --output=yaml`
-
-#### Debug secret was created correctly
-
-`kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode`
-
-#### Add secret to yaml file
-
-```yaml
-   spec:
-     containers:
-     - name: app
-       image: "foobar/flasksidecardemo"
-     imagePullSecrets:
-       - name: regcred
-```
-
-#### Debug secret was created correctly
-
-```bash
-kubectl apply -f deploy.yml 
-
-kubectl get pods       
-NAME                                READY   STATUS              RESTARTS   AGE
-hello-deployment-566f549976-5nsm7   0/1     ContainerCreating   0          6s
-hello-deployment-566f549976-fh6c7   0/1     ContainerCreating   0          6s
-
-
-kubectl get deployments
-NAME               READY   UP-TO-DATE   AVAILABLE   AGE
-hello-deployment   2/2     2            2           32s
-```
-
-#### Delete secret
-
-`kubectl delete secret regcred`
 
 ## Terraform
 
