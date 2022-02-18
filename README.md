@@ -51,7 +51,7 @@
     - [KubeVal](#kubeval)
     - [KubeSec](#kubesec)
 - [Terraform](#terraform)
-    - [Validate](#validate)
+    - [Writing](#writing)
     - [Lint  macOS](#lint--macos)
 
 <!-- /TOC -->
@@ -885,7 +885,7 @@ kubectl logs secret
 WEAVE_POD=$(kubectl get --namespace kube-system pods -l name=weave-net -o json | jq -r '.items[0].metadata.name')
 kubectl logs --namespace kube-system $WEAVE_POD --container weave
 
-# etcd logs
+# etcd - "system of record".  Distributed consensus.   Highly available.
 kubectl logs -f -n kube-system etcd-kubernetes-master
 
 # Follow - real-time container log output
@@ -964,6 +964,10 @@ brew install kubeval
 kubeval deploy.yml
 ```
 
+#### Raft
+
+[Overview](https://runway.systems/?model=github.com/ongardie/runway-model-raft#)
+
 ### KubeSec
 
 <https://kubesec.io/>
@@ -974,9 +978,22 @@ kubeval deploy.yml
 
 ## Terraform
 
-### Validate
+### Writing
 
-#### local files
+Writing [AWS Terraform files](https://blog.gruntwork.io/an-introduction-to-terraform-f17df9c6d180) introduction:
+
+```terraform
+brew upgrade hashicorp/tap/terraform
+terraform --version
+terraform -install-autocomplete
+terraform init
+terraform plan
+terraform apply
+terraform output
+terraform output public_ip
+```
+
+#### Validate
 
 ```bash
 terraform init -backend=false
