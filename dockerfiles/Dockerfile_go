@@ -1,0 +1,25 @@
+##############################################################################################
+# base
+##############################################################################################
+FROM some/docker_hub_repo:1.0.0 as base
+##############################################################################################
+# Golang base image with /some-binary added
+##############################################################################################
+FROM golang:1.17
+COPY --from=base /some-binary /usr/bin/some-binary
+
+
+WORKDIR /app
+# copy the files needed to download dependencies
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+# Don't COPY . . as you get all the git, IDE hidden files.
+COPY *.go ./
+
+# Drop root privilages.  Free filesystem from runtime changes.
+RUN useradd app
+USER app
+
+# Execute some binary.
+ENTRYPOINT ["some-binary"]
