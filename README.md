@@ -179,11 +179,15 @@ Reference: <https://pythonspeed.com/articles/docker-buildkit/>
 # interactive bash shell for container
 docker run -it $(pwd | xargs basename):latest bash
 
-# pass in environment variables
-docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 $(pwd | xargs basename):latest bash
+ # mount AWS directory as Read-Only for set AWS environment variables
 
- # mount directory for AWS variables
-docker run -v $HOME/.aws/:/root/.aws/:ro -it $(pwd | xargs basename):latest bash
+docker run \
+    --rm \
+    --env AWS_PROFILE=foo \
+    --env AWS_REGION=eu-west-3 \
+    -v $HOME/.aws/:/root/.aws/:ro \
+    -it $(pwd | xargs basename):latest \
+    bash
 
 # get file from Container to Host
   # inside Dockerfile: 
@@ -668,6 +672,9 @@ pip install -r requirements.txt
 
 # force Snyk to consider Python3
 snyk test --file=requirements.txt --package-manager=pip --command=python3
+
+# Send Snapshot to Snyk
+snyk monitor --severity-threshold=high --file=requirements.txt --package-manager=pip --command=python3 
 ```
 
 ### custom filter results

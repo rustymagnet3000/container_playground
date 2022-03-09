@@ -2,18 +2,28 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"log"
 	"net/http"
+	"os"
+	"time"
 )
 
-func main() {
-	http.HandleFunc("/", HelloHandler)
-	fmt.Println("Hello world!  Starting to listen...")
-	http.ListenAndServe(":8080", nil)
+func hello(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello!")
 }
-
-func HelloHandler(res http.ResponseWriter, r *http.Request) {
-	res.WriteHeader(http.StatusOK)
-	res.Header().Set("Content-Type", "application/json")
-	io.WriteString(res, `{"fancy-demo": true}`)
+func date(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "time now: %s", time.Now().Format("15:04:05"))
+}
+func main() {
+	http.HandleFunc("/", hello)
+	http.HandleFunc("/date", date)
+	port := os.Getenv("LISTENING_PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("listening on port:%s", port)
+	err := http.ListenAndServe("localhost:"+port, nil)
+	if err != nil {
+		log.Fatalf("Failed to start server:%v", err)
+	}
 }
