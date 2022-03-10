@@ -14,6 +14,7 @@
     - [Sidecar design pattern](#sidecar-design-pattern)
 - [circleci](#circleci)
     - [Pass values from Docker Container to Host](#pass-values-from-docker-container-to-host)
+    - [Set environment variable](#set-environment-variable)
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
@@ -504,6 +505,19 @@ The answer is simpler:
     # after application container finishes, copy artifacts directly from it
     docker cp app:/output /path/in/your/job/space
 ```
+
+### Set environment variable
+
+You can set `Organization` or `Project` level environment variables.   Sometimes it is useful to override a `Organization` variable in a single `Circle CI Job`:
+
+```yaml
+jobs:
+  build:
+    environment:
+      FOO: bar
+```
+
+[Reference](https://circleci.com/docs/2.0/configuration-reference/#modifiers).
 
 ### local setup
 
