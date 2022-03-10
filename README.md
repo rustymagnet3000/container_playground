@@ -14,6 +14,7 @@
     - [Sidecar design pattern](#sidecar-design-pattern)
 - [circleci](#circleci)
     - [Pass values from Docker Container to Host](#pass-values-from-docker-container-to-host)
+    - [Set environment variable](#set-environment-variable)
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
@@ -51,7 +52,7 @@
     - [KubeVal](#kubeval)
     - [KubeSec](#kubesec)
 - [Terraform](#terraform)
-    - [Validate](#validate)
+    - [Writing](#writing)
     - [Lint  macOS](#lint--macos)
 
 <!-- /TOC -->
@@ -179,11 +180,15 @@ Reference: <https://pythonspeed.com/articles/docker-buildkit/>
 # interactive bash shell for container
 docker run -it $(pwd | xargs basename):latest bash
 
-# pass in environment variables
-docker run --env AWS_PROFILE=foo --env AWS_REGION=eu-west-1 $(pwd | xargs basename):latest bash
+ # mount AWS directory as Read-Only for set AWS environment variables
 
- # mount directory for AWS variables
-docker run -v $HOME/.aws/:/root/.aws/:ro -it $(pwd | xargs basename):latest bash
+docker run \
+    --rm \
+    --env AWS_PROFILE=foo \
+    --env AWS_REGION=eu-west-3 \
+    -v $HOME/.aws/:/root/.aws/:ro \
+    -it $(pwd | xargs basename):latest \
+    bash
 
 # get file from Container to Host
   # inside Dockerfile: 
@@ -501,6 +506,19 @@ The answer is simpler:
     docker cp app:/output /path/in/your/job/space
 ```
 
+### Set environment variable
+
+You can set `Organization` or `Project` level environment variables.   Sometimes it is useful to override a `Organization` variable in a single `Circle CI Job`:
+
+```yaml
+jobs:
+  build:
+    environment:
+      FOO: bar
+```
+
+[Reference](https://circleci.com/docs/2.0/configuration-reference/#modifiers).
+
 ### local setup
 
 It was essential that you debug the `config.yml` file before uploading to circleci.
@@ -668,6 +686,9 @@ pip install -r requirements.txt
 
 # force Snyk to consider Python3
 snyk test --file=requirements.txt --package-manager=pip --command=python3
+
+# Send Snapshot to Snyk
+snyk monitor --severity-threshold=high --file=requirements.txt --package-manager=pip --command=python3 
 ```
 
 ### custom filter results
@@ -885,7 +906,7 @@ kubectl logs secret
 WEAVE_POD=$(kubectl get --namespace kube-system pods -l name=weave-net -o json | jq -r '.items[0].metadata.name')
 kubectl logs --namespace kube-system $WEAVE_POD --container weave
 
-# etcd logs
+# etcd - "system of record".  Distributed consensus.   Highly available.
 kubectl logs -f -n kube-system etcd-kubernetes-master
 
 # Follow - real-time container log output
@@ -964,6 +985,10 @@ brew install kubeval
 kubeval deploy.yml
 ```
 
+#### Raft
+
+[Overview](https://runway.systems/?model=github.com/ongardie/runway-model-raft#)
+
 ### KubeSec
 
 <https://kubesec.io/>
@@ -974,9 +999,22 @@ kubeval deploy.yml
 
 ## Terraform
 
-### Validate
+### Writing
 
-#### local files
+Writing [AWS Terraform files](https://blog.gruntwork.io/an-introduction-to-terraform-f17df9c6d180) introduction:
+
+```terraform
+brew upgrade hashicorp/tap/terraform
+terraform --version
+terraform -install-autocomplete
+terraform init
+terraform plan
+terraform apply
+terraform output
+terraform output public_ip
+```
+
+#### Validate
 
 ```bash
 terraform init -backend=false
