@@ -1,0 +1,68 @@
+##############################################################################################
+# 243MB
+# Base image from Docker Hub
+##############################################################################################
+FROM python:3.9.10-slim-buster as python-base
+
+# Environment variables
+ENV PYTHONDONTWRITEBYTECODE=on \
+  PYTHONFAULTHANDLER=on \
+  PIP_DISABLE_PIP_VERSION_CHECK=on \
+  PYTHONUNBUFFERED=on \
+  POETRY_VERSION=1.1.6 \
+  POETRY_HOME="/opt/poetry" \
+  POETRY_NO_INTERACTION=1 \
+  VENV_PATH="/opt/pysetup/.venv"
+
+# prepend poetry and venv to path
+ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
+
+##############################################################################################
+# A CI/CD Uploader image
+# It prepares the code for zip upload to AWS in the CI/CD stage
+# Poetry and Zip are required to create the final artefact for AWS upload
+# These apps do not get shipped into the Lambda
+##############################################################################################
+FROM python-base as image_to_upload_zip
+
+# Create User env variables and build args ( not a Group )
+ENV USER=foouser
+ENV UID=1001
+ARG HOME=/home/$USER
+
+# Add user, with no password
+RUN adduser \
+  --uid "$UID" \
+  --home "$HOME" \
+  --disabled-password \
+  "$USER"
+
+WORKDIR ${HOME}
+
+# required to install Zip. Keeps image size down: https://pythonspeed.com/articles/system-packages-docker/.  saved about ~20mb
+COPY --chown=foouser:foouser install_zip.sh .
+RUN chmod +x install_zip.sh && \
+  ./install_zip.sh && \
+  rm -f install_zip.sh
+
+# Install poetry. Pin version.  Removes need to install cURL ( as pip shipped by default in Base Image )
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
+
+# Copy dependency files as these change less often.
+COPY --chown=foouser:foouser poetry.lock pyproject.toml ./
+
+# Copy source files later than dependency files ( as Source file changes more frequently )
+COPY --chown=foouser:foouser foobar ${HOME}/foobar/
+COPY --chown=foouser:foouser zip_for_lambda_upload.sh lambda_function.py ${HOME}/
+RUN chmod +x zip_for_lambda_upload.sh
+
+# Drop root privilages.  Freeze the filesystem from runtime changes
+USER foouser
+
+##############################################################################################
+# run script code when called via Docker Run. Won't run if Docker Run is passed parameters / interactive
+# no Poetry install run yet; this is a CI/CD Image. We don't want to run the actual code.
+# we only need the Poetry files to Build the zip artefact for AWS upload.
+# inside the final script Poetry Build runs.  Never ran Poetry Install.
+##############################################################################################
+CMD ["./zip_for_lambda_upload.sh"]
