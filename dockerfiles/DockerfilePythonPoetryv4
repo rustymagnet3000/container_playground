@@ -6,13 +6,13 @@ FROM python:3.9.10-slim-buster as python-base
 
 # Environment variables
 ENV PYTHONDONTWRITEBYTECODE=on \
-    PYTHONFAULTHANDLER=on \
-    PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PYTHONUNBUFFERED=on \
-    POETRY_VERSION=1.1.6 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_NO_INTERACTION=1 \
-    VENV_PATH="/opt/pysetup/.venv"
+  PYTHONFAULTHANDLER=on \
+  PIP_DISABLE_PIP_VERSION_CHECK=on \
+  PYTHONUNBUFFERED=on \
+  POETRY_VERSION=1.1.6 \
+  POETRY_HOME="/opt/poetry" \
+  POETRY_NO_INTERACTION=1 \
+  VENV_PATH="/opt/pysetup/.venv"
 
 # prepend poetry and venv to path
 ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
@@ -32,10 +32,10 @@ ARG HOME=/home/$USER
 
 # Add user, with no password
 RUN adduser \
-    --uid "$UID" \
-    --home "$HOME" \
-    --disabled-password \
-    "$USER"
+  --uid "$UID" \
+  --home "$HOME" \
+  --disabled-password \
+  "$USER"
 
 WORKDIR ${HOME}
 
@@ -55,8 +55,12 @@ COPY --chown=foouser:foouser poetry.lock pyproject.toml ./
 COPY --chown=foouser:foouser foobar ${HOME}/foobar/
 COPY --chown=foouser:foouser zip_for_lambda_upload.sh lambda_function.py ${HOME}/
 RUN chmod +x zip_for_lambda_upload.sh
-# run script code when called via Docker Run. Won't run if Docker Run is passed parameters / interactive
+
+# Drop root privilages.  Freeze the filesystem from runtime changes
+USER foouser
+
 ##############################################################################################
+# run script code when called via Docker Run. Won't run if Docker Run is passed parameters / interactive
 # no Poetry install run yet; this is a CI/CD Image. We don't want to run the actual code.
 # we only need the Poetry files to Build the zip artefact for AWS upload.
 # inside the final script Poetry Build runs.  Never ran Poetry Install.
