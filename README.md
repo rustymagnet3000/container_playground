@@ -7,6 +7,7 @@
     - [Run](#run)
     - [CMD, RUN and ENTRYPOINT](#cmd-run-and-entrypoint)
     - [Local credentials](#local-credentials)
+    - [Docker Compose](#docker-compose)
     - [Image introspection](#image-introspection)
     - [Containers](#containers)
     - [Copy](#copy)
@@ -281,6 +282,23 @@ docker-credential-desktop list | \
     done
 ```
 
+### Docker Compose
+
+```bash
+# status of containers
+docker-compose ps
+
+# stop started containers
+docker-compose stop
+
+# run in detached mode
+docker-compose up -d
+
+# get env variables from webapp
+docker-compose run webapp env
+docker-compose run redis env
+```
+
 ### Image introspection
 
 #### Skopeo
@@ -364,6 +382,10 @@ docker inspect --format='{{json .RootFS.Layers}}' foobar
 # Inspect local image
 docker image inspect $(pwd | xargs basename)
 
+# Inspect Entrypoint
+
+docker image inspect $(pwd | xargs basename):latest --format 'CMD: {{.Config.Cmd}} , ENTRYPOINT: {{.Config.Entrypoint}}
+ 
 # Pretty Print
 docker history --format "{{.ID}}: {{.CreatedSince}}" foo/bar:0.2.1
 
