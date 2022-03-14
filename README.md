@@ -2,8 +2,8 @@
 <!-- TOC depthfrom:2 depthto:3 withlinks:true updateonsave:true orderedlist:false -->
 
 - [Docker](#docker)
-    - [Build](#build)
     - [Dockerfile](#dockerfile)
+    - [Build](#build)
     - [Run](#run)
     - [CMD, RUN and ENTRYPOINT](#cmd-run-and-entrypoint)
     - [Local credentials](#local-credentials)
@@ -58,58 +58,6 @@
 <!-- /TOC -->
 
 ## Docker
-
-### Build
-
-#### Build options
-
-```bash
-docker build -f Dockerfile -t $(pwd | xargs basename):latest .
-docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
-DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml build --build-arg build_secret=${BUILD_SECRET} --progress=plain --no-cache
-```
-
-#### Build argument to env var in container
-
-```bash
-## Docker build
-docker build -f Dockerfile --build-arg FOO_VERSION="$(./foo_echo_version_script)" -t $(pwd | xargs basename):latest . --progress=plain
-## Dockerfile
-ARG FOO_VERSION
-ENV MY_FOO_VERSION ${FOO_VERSION}
-```
-
-#### Build secrets
-
-It is easy to let build secrets slip into a layer of a container.
-
-```bash
-# Stop secrets leaking in Docker History or an Image Layer
-DOCKER_BUILDKIT=1 \
-docker build -t $(pwd | xargs basename) \
-  --secret id=build_secret,src=build_secret.txt \
-  --progress=plain --no-cache \
-  .
-
-# Dockerfile
-
-# syntax = docker/dockerfile:experimental
-FROM ...
-
-COPY get_build_secret.sh .
-RUN --mount=type=secret,id=build_secret ./get_build_secret.sh
-
-
-# get_build_secret.sh
-
-#!/bin/bash
-set -euo pipefail
-if [ -f /run/secrets/build_secret ]; then
-   export BUILD_SECRET=$(cat /run/secrets/build_secret)
-fi
-
-foo install < which uses the BUILD_SECRET >
-```
 
 ### Dockerfile
 
@@ -173,6 +121,39 @@ COPY src/ .
 #### BuildKit
 
 Reference: <https://pythonspeed.com/articles/docker-buildkit/>
+
+### Build
+
+#### Build options
+
+```bash
+# Build present working directory
+docker build -f Dockerfile -t $(pwd | xargs basename):latest .
+
+# View progress in plaintext
+docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
+
+# Target a setp.  Debug a multi-stage build
+docker build -f Dockerfile --target builder -t $(pwd | xargs basename):latest .
+
+# docker-compose with BuildKit for Secrets
+DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml 
+build --build-arg build_secret=${BUILD_SECRET} --progress=plain --no-cache
+
+## Build argument to env var in container
+docker build -f Dockerfile --build-arg FOO_VERSION="$(./foo_echo_version_script)" -t $(pwd | xargs basename):latest .
+
+  ## Dockerfile
+  ARG FOO_VERSION
+  ENV MY_FOO_VERSION ${FOO_VERSION}
+
+# Stop secrets leaking in Docker History or an Image Layer
+DOCKER_BUILDKIT=1 \
+docker build -t $(pwd | xargs basename) \
+  --secret id=build_secret,src=build_secret.txt \
+  --progress=plain --no-cache \
+  .
+```
 
 ### Run
 
