@@ -687,6 +687,15 @@ snyk test --file=poetry.lock --package-manager=poetry
 # pip and Python3
 pip install -r requirements.txt
 
+# Scala or Java - you need one of these tools installed!
+sbt "-Dsbt.log.noformat=true" dependencyTree
+sbt "-Dsbt.log.noformat=true" coursierDependencyTree
+
+# install SBT Dependency Graph https://support.snyk.io/hc/en-us/articles/360004167317
+echo "addSbtPlugin(\"net.virtual-void\" % \"sbt-dependency-graph\" % \"0.10.0-RC1\")" > plugins.sbt
+
+snyk monitor --severity-threshold=high
+
 # force Snyk to consider Python3
 snyk test --file=requirements.txt --package-manager=pip --command=python3
 
@@ -744,10 +753,59 @@ tfsec .
 ## TwistLock
 
 ```bash
+
+# Get twistcli from installed PrismaCloud
+curl \     
+  -u ${TWISTLOCK_USER} \
+  -o results \                                       
+  "${TWISTLOCK_PATH_TO_CONSOLE}/api/v1/util/twistcli"
+
+# Scan assuming TWISTLOCK_USER and TWISTLOCK_PASSWORD env variables are set
+twistcli images \
+ scan $(pwd | xargs basename)
+
+# Scan
+twistcli images scan \
+  --address ${TWISTCLI_PATH_TO_CONSOLE} \
+  --user ${TWISTLOCK_USER} \
+  --password ${TWISTLOCK_PASSWORD} \
+ $(pwd | xargs basename)
+
+# Scan with details
+twistcli images scan $(pwd | xargs basename) --details
+
+# Check all is ok
+curl -k \
+-H "Authorization: Bearer ${TWISTLOCK_PASSWORD}" \
+-X POST ${TWISTCLI_PATH_TO_CONSOLE}/api/v1/authenticate
+  
 # install
 curl --progress-bar -L -k --header "authorization: Bearer API-TOKEN" https://kubernetes:30443/api/v1/util/twistcli > /usr/local/bin/twistcli
 
 chmod a+x /usr/local/bin/twistcli
+
+# twistcli does not pull images for you.
+twistcli images scan \                        
+  --address ${TWISTCLI_PATH_TO_CONSOLE} \
+  --user ${TWISTLOCK_USER} \
+  --password ${TWISTLOCK_PASSWORD} \
+  --details \
+  $(pwd | xargs basename):latest
+  
+# get scan report
+twistcli images scan \
+  --address ${TWISTCLI_PATH_TO_CONSOLE} \
+  --user ${TWISTLOCK_USER} \
+  --password ${TWISTLOCK_PASSWORD} \
+  myimage:latest
+
+# detailed report
+twistcli images scan \
+  --address ${TWISTCLI_PATH_TO_CONSOLE} \
+  --user ${TWISTLOCK_USER} \
+  --password ${TWISTLOCK_PASSWORD} \
+  --details \
+  myimage:latest
 
 # scan
 /usr/local/bin/twistcli defender export kubernetes \
