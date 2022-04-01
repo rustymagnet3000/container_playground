@@ -2,11 +2,12 @@
 <!-- TOC depthfrom:2 depthto:3 withlinks:true updateonsave:true orderedlist:false -->
 
 - [Docker](#docker)
-    - [Build](#build)
     - [Dockerfile](#dockerfile)
+    - [Build](#build)
     - [Run](#run)
     - [CMD, RUN and ENTRYPOINT](#cmd-run-and-entrypoint)
     - [Local credentials](#local-credentials)
+    - [Docker Compose](#docker-compose)
     - [Image introspection](#image-introspection)
     - [Containers](#containers)
     - [Copy](#copy)
@@ -58,58 +59,6 @@
 <!-- /TOC -->
 
 ## Docker
-
-### Build
-
-#### Build options
-
-```bash
-docker build -f Dockerfile -t $(pwd | xargs basename):latest .
-docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
-DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml build --build-arg build_secret=${BUILD_SECRET} --progress=plain --no-cache
-```
-
-#### Build argument to env var in container
-
-```bash
-## Docker build
-docker build -f Dockerfile --build-arg FOO_VERSION="$(./foo_echo_version_script)" -t $(pwd | xargs basename):latest . --progress=plain
-## Dockerfile
-ARG FOO_VERSION
-ENV MY_FOO_VERSION ${FOO_VERSION}
-```
-
-#### Build secrets
-
-It is easy to let build secrets slip into a layer of a container.
-
-```bash
-# Stop secrets leaking in Docker History or an Image Layer
-DOCKER_BUILDKIT=1 \
-docker build -t $(pwd | xargs basename) \
-  --secret id=build_secret,src=build_secret.txt \
-  --progress=plain --no-cache \
-  .
-
-# Dockerfile
-
-# syntax = docker/dockerfile:experimental
-FROM ...
-
-COPY get_build_secret.sh .
-RUN --mount=type=secret,id=build_secret ./get_build_secret.sh
-
-
-# get_build_secret.sh
-
-#!/bin/bash
-set -euo pipefail
-if [ -f /run/secrets/build_secret ]; then
-   export BUILD_SECRET=$(cat /run/secrets/build_secret)
-fi
-
-foo install < which uses the BUILD_SECRET >
-```
 
 ### Dockerfile
 
@@ -173,6 +122,39 @@ COPY src/ .
 #### BuildKit
 
 Reference: <https://pythonspeed.com/articles/docker-buildkit/>
+
+### Build
+
+#### Build options
+
+```bash
+# Build present working directory
+docker build -f Dockerfile -t $(pwd | xargs basename):latest .
+
+# View progress in plaintext
+docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
+
+# Target a setp.  Debug a multi-stage build
+docker build -f Dockerfile --target builder -t $(pwd | xargs basename):latest .
+
+# docker-compose with BuildKit for Secrets
+DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml 
+build --build-arg build_secret=${BUILD_SECRET} --progress=plain --no-cache
+
+## Build argument to env var in container
+docker build -f Dockerfile --build-arg FOO_VERSION="$(./foo_echo_version_script)" -t $(pwd | xargs basename):latest .
+
+  ## Dockerfile
+  ARG FOO_VERSION
+  ENV MY_FOO_VERSION ${FOO_VERSION}
+
+# Stop secrets leaking in Docker History or an Image Layer
+DOCKER_BUILDKIT=1 \
+docker build -t $(pwd | xargs basename) \
+  --secret id=build_secret,src=build_secret.txt \
+  --progress=plain --no-cache \
+  .
+```
 
 ### Run
 
@@ -300,6 +282,23 @@ docker-credential-desktop list | \
     done
 ```
 
+### Docker Compose
+
+```bash
+# status of containers
+docker-compose ps
+
+# stop started containers
+docker-compose stop
+
+# run in detached mode
+docker-compose up -d
+
+# get env variables from webapp
+docker-compose run webapp env
+docker-compose run redis env
+```
+
 ### Image introspection
 
 #### Skopeo
@@ -383,6 +382,10 @@ docker inspect --format='{{json .RootFS.Layers}}' foobar
 # Inspect local image
 docker image inspect $(pwd | xargs basename)
 
+# Inspect Entrypoint
+
+docker image inspect $(pwd | xargs basename):latest --format 'CMD: {{.Config.Cmd}} , ENTRYPOINT: {{.Config.Entrypoint}}
+ 
 # Pretty Print
 docker history --format "{{.ID}}: {{.CreatedSince}}" foo/bar:0.2.1
 
@@ -684,6 +687,15 @@ snyk test --file=poetry.lock --package-manager=poetry
 # pip and Python3
 pip install -r requirements.txt
 
+# Scala or Java - you need one of these tools installed!
+sbt "-Dsbt.log.noformat=true" dependencyTree
+sbt "-Dsbt.log.noformat=true" coursierDependencyTree
+
+# install SBT Dependency Graph https://support.snyk.io/hc/en-us/articles/360004167317
+echo "addSbtPlugin(\"net.virtual-void\" % \"sbt-dependency-graph\" % \"0.10.0-RC1\")" > plugins.sbt
+
+snyk monitor --severity-threshold=high
+
 # force Snyk to consider Python3
 snyk test --file=requirements.txt --package-manager=pip --command=python3
 
@@ -741,10 +753,59 @@ tfsec .
 ## TwistLock
 
 ```bash
+
+# Get twistcli from installed PrismaCloud
+curl \     
+  -u ${TWISTLOCK_USER} \
+  -o results \                                       
+  "${TWISTLOCK_PATH_TO_CONSOLE}/api/v1/util/twistcli"
+
+# Scan assuming TWISTLOCK_USER and TWISTLOCK_PASSWORD env variables are set
+twistcli images \
+ scan $(pwd | xargs basename)
+
+# Scan
+twistcli images scan \
+  --address ${TWISTCLI_PATH_TO_CONSOLE} \
+  --user ${TWISTLOCK_USER} \
+  --password ${TWISTLOCK_PASSWORD} \
+ $(pwd | xargs basename)
+
+# Scan with details
+twistcli images scan $(pwd | xargs basename) --details
+
+# Check all is ok
+curl -k \
+-H "Authorization: Bearer ${TWISTLOCK_PASSWORD}" \
+-X POST ${TWISTCLI_PATH_TO_CONSOLE}/api/v1/authenticate
+  
 # install
 curl --progress-bar -L -k --header "authorization: Bearer API-TOKEN" https://kubernetes:30443/api/v1/util/twistcli > /usr/local/bin/twistcli
 
 chmod a+x /usr/local/bin/twistcli
+
+# twistcli does not pull images for you.
+twistcli images scan \                        
+  --address ${TWISTCLI_PATH_TO_CONSOLE} \
+  --user ${TWISTLOCK_USER} \
+  --password ${TWISTLOCK_PASSWORD} \
+  --details \
+  $(pwd | xargs basename):latest
+  
+# get scan report
+twistcli images scan \
+  --address ${TWISTCLI_PATH_TO_CONSOLE} \
+  --user ${TWISTLOCK_USER} \
+  --password ${TWISTLOCK_PASSWORD} \
+  myimage:latest
+
+# detailed report
+twistcli images scan \
+  --address ${TWISTCLI_PATH_TO_CONSOLE} \
+  --user ${TWISTLOCK_USER} \
+  --password ${TWISTLOCK_PASSWORD} \
+  --details \
+  myimage:latest
 
 # scan
 /usr/local/bin/twistcli defender export kubernetes \
