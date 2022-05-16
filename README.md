@@ -22,6 +22,7 @@
     - [Speed](#speed)
     - [Define what branches you test on](#define-what-branches-you-test-on)
     - [On every config.yaml change](#on-every-configyaml-change)
+    - [CircleCI and Docker Compose](#circleci-and-docker-compose)
     - [Share Docker Containers](#share-docker-containers)
     - [Resources](#resources)
 - [Snyk](#snyk)
@@ -54,7 +55,6 @@
     - [KubeSec](#kubesec)
 - [Terraform](#terraform)
     - [Writing](#writing)
-    - [Lint  macOS](#lint--macos)
 
 <!-- /TOC -->
 
@@ -154,13 +154,22 @@ docker build -t $(pwd | xargs basename) \
   --secret id=build_secret,src=build_secret.txt \
   --progress=plain --no-cache \
   .
+
+# build to stop container exiting
+ENTRYPOINT ["tail", "-f", "/dev/null"]
+
 ```
+
+
 
 ### Run
 
 ```bash
 # interactive bash shell for container
 docker run -it $(pwd | xargs basename):latest bash
+
+# Pass in .env file and var that can override the .env entries
+docker run -e MYVAR1 --env MYVAR2=foo --env-file ./env.list $(pwd | xargs basename):latest bash
 
  # mount AWS directory as Read-Only for set AWS environment variables
 
@@ -286,17 +295,28 @@ docker-credential-desktop list | \
 
 ```bash
 # status of containers
-docker-compose ps
+docker compose ps
 
-# stop started containers
-docker-compose stop
+# shotdown running containers
+docker-compose down
+docker-compose down --remove-orphans
 
 # run in detached mode
-docker-compose up -d
+docker compose up -d
+
+# stop all containers
+docker compose up -d --build
+
+# stop all containers and remove Redis data
+docker-compose down --volumes
 
 # get env variables from webapp
-docker-compose run webapp env
-docker-compose run redis env
+docker compose run webapp env
+docker compose run redis env
+
+# lint
+docker compose -f docker-compose.yml config
+
 ```
 
 ### Image introspection
@@ -610,6 +630,14 @@ circleci local execute \
  -c process.yml \
  --job build \
  --env FOO_TOKEN=${FOO_TOKEN}
+```
+
+### CircleCI and Docker Compose
+
+```yaml
+      - run:
+          name: Start all services declared in docker-compose.yml
+          command: docker-compose up -d
 ```
 
 ### Share Docker Containers
@@ -1088,6 +1116,12 @@ terraform validate
 terraform refresh
 terraform show 
 terraform show -json | jq .
+
+# Remove inconsistent state ( when AWS and TF differ )
+terraform state rm -state=sandbox.tfstate module.apps.aws_elasticache_parameter_group.foo_elasticache_params
+
+# Lint ( macOS )
+brew install tflint
 ```
 
 #### APIs
@@ -1107,19 +1141,8 @@ value = index(local.foobar_domains, "foobar.fr")
 
 # Contains Boolean response
 contains(local.foobar_domains, "foobar.fr")
+
 ```
-
-#### plan changes
-
-terraform plan
-
-### Lint ( macOS )
-
-`brew install tflint`
-
-#### Upgrade flint
-
-`brew upgrade tflint`
 
 #### Check installed versions
 
