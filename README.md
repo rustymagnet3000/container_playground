@@ -4,6 +4,7 @@
 - [Docker](#docker)
     - [Dockerfile](#dockerfile)
     - [Build](#build)
+    - [Multi-Stage Builds](#multi-stage-builds)
     - [Run](#run)
     - [CMD, RUN and ENTRYPOINT](#cmd-run-and-entrypoint)
     - [Local credentials](#local-credentials)
@@ -160,13 +161,19 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 ```
 
+### Multi-Stage Builds
 
+- The Base Image can build, test and lint.  It might require a bunch of tools, libraries and package managers.
+- The child image gets uploaded to a cloud environment.  It is small, quick and has the minimal amount of privilege and extras.  Sometimes referred to as a "scratch image", Alpine or something else.
 
 ### Run
 
 ```bash
 # interactive bash shell for container
 docker run -it $(pwd | xargs basename):latest bash
+
+# run Grafana. It will download if not locally stored
+docker run -d --name=grafana -p 3000:3000 grafana/grafana
 
 # Pass in .env file and var that can override the .env entries
 docker run -e MYVAR1 --env MYVAR2=foo --env-file ./env.list $(pwd | xargs basename):latest bash
@@ -719,6 +726,13 @@ pip install -r requirements.txt
 sbt "-Dsbt.log.noformat=true" dependencyTree
 sbt "-Dsbt.log.noformat=true" coursierDependencyTree
 
+# Scala single file
+snyk monitor --severity-threshold=high --file=api-integration-util/build.sbt
+
+https://docs.snyk.io/features/snyk-cli/test-for-vulnerabilities/scan-all-unmanaged-jar-files
+
+https://docs.snyk.io/products/snyk-open-source/language-and-package-manager-support/snyk-for-java-gradle-maven
+
 # install SBT Dependency Graph https://support.snyk.io/hc/en-us/articles/360004167317
 echo "addSbtPlugin(\"net.virtual-void\" % \"sbt-dependency-graph\" % \"0.10.0-RC1\")" > plugins.sbt
 
@@ -1092,10 +1106,20 @@ kubeval deploy.yml
 
 Writing [AWS Terraform files](https://blog.gruntwork.io/an-introduction-to-terraform-f17df9c6d180) introduction:
 
-```terraform
+```shell
+
+#upgrade
 brew upgrade hashicorp/tap/terraform
+
+#version
 terraform --version
+
+# auto complete
 terraform -install-autocomplete
+
+# reads the current settings from all managed remote objects and updates the Terraform state to match.
+terraform refresh
+
 terraform init
 terraform plan
 terraform apply
@@ -1113,6 +1137,7 @@ terraform validate
 #### Debug variables
 
 ```bash
+TFLOG=debug
 terraform refresh
 terraform show 
 terraform show -json | jq .
