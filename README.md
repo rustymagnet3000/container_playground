@@ -307,23 +307,92 @@ docker compose ps
 # shotdown running containers
 docker-compose down
 docker-compose down --remove-orphans
+docker compose -f docker-compose.ci.yml down --remove-orphans
 
-# run in detached mode
-docker compose up -d
+# start
+docker compose up  # start containers with debug output
+docker compose up -d # run in detached mode [ no debug ouput ]
 
-# stop all containers
-docker compose up -d --build
+# Start both containers and run integration tests
+docker compose -f docker-compose-test.yml up -d
+docker compose -f docker-compose-test.yml up
 
-# stop all containers and remove Redis data
-docker-compose down --volumes
+# Verify you can access the Redis server
+docker exec -it redis-server redis-cli
+
+# Log into App Container with Go installed
+docker exec -it app-test bash
+
+# Access Redis server from the App Container
+/app# redis-cli -u redis://${REDIS_URL}
+
+# Run integration tests
+docker exec -it app-test make test
 
 # get env variables from webapp
 docker compose run webapp env
 docker compose run redis env
 
+# scale Redis instances
+$ docker-compose up --detach --scale redis-master=1 --scale redis-secondary=3
+
 # lint
 docker compose -f docker-compose.yml config
+```
 
+#### Integration tests
+
+Things of note:
+
+- The [wait-for](https://github.com/vishnubob/wait-for-it) bash script.  You load this into the container that is running the test.  This container should "wait" for Redis to be up and accepting connections.  Otherwise you get hard to diagnose errors.
+
+- The "default" network manages the DNS of the Redis server.  In the below case it sets the Redis server value as `redis-server:6379`.
+
+- When the tests are done, the "app-test" container will stop automatically.
+
+```yaml
+version: "3.7"
+services:
+  redis-server:
+    container_name: "redis-server"
+    build:
+      context: .
+      dockerfile: Dockerfile_redis_test
+
+  app-test:
+    container_name: "app-test"
+    environment:
+      REDIS_URL:  $REDIS_URL
+      REDIS_USER: $REDIS_USER
+      REDIS_PSWD: $REDIS_PSWD
+    build:
+      context: .
+      target: integration-tests
+    depends_on:
+      - redis-server
+    entrypoint: [ "/app/wait-for.sh", $REDIS_URL, "--", "make", "test"]
+```
+
+The above docker-compose file will pick up the environment variables set on the computer running the `docker compose up` command:
+
+```bash
+export REDIS_PSWD=bar && export REDIS_USER=foo && export REDIS_URL=redis-server:6379
+```
+
+#### Debugging docker-compose
+
+```bash
+# Great to check multiple containers on same network!
+docker network inspect croof_default
+
+# This found my error in the container redis-server!
+docker logs --follow redis-server
+1:C 26 Sep 2022 12:33:47.625 # Fatal error, can't open config file '/usr/local/etc/redis/redis.conf': No such file or directory
+
+# check no cached image causing issue
+docker compose down 
+docker rmi -f $(docker images -a -q)
+docker-compose up
 ```
 
 ### Image introspection
