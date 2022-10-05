@@ -164,7 +164,7 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 ### Multi-Stage Builds
 
 - The Base Image can build, test and lint.  It might require a bunch of tools, libraries and package managers.
-- The child image gets uploaded to a cloud environment.  It is small, quick and has the minimal amount of privilege and extras.  Sometimes referred to as a "scratch image", Alpine or something else.
+- The child image gets uploaded to a cloud environment.  It is small, quick and has the minimal privilege and extras.  Most engineers will use "scratch image", Alpine or something else when putting an app into AWS.
 
 ### Run
 
@@ -350,6 +350,8 @@ Things of note:
 
 - When the tests are done, the "app-test" container will stop automatically.
 
+- No `volumes` were mounted fo the `redis-server`.  Careful with docker-compose and `volumes`.  I mounted a file as a directory which took time to debug.  I found it cleaner to create `Dockerfile_redis_test` and copy over the user `ACL file` and the `config file` during the Dockerfile.  This also minimises the size of the `docker-compose` file.
+
 ```yaml
 version: "3.7"
 services:
@@ -373,10 +375,13 @@ services:
     entrypoint: [ "/app/wait-for.sh", $REDIS_URL, "--", "make", "test"]
 ```
 
-The above docker-compose file will pick up the environment variables set on the computer running the `docker compose up` command:
+To create the two containers and run the `make test`:
 
 ```bash
-export REDIS_PSWD=bar && export REDIS_USER=foo && export REDIS_URL=redis-server:6379
+export REDIS_PSWD=bar \
+	&& export REDIS_USER=foo \
+	&& export REDIS_URL=redis-server:6379 \
+	docker compose -f docker-compose-test.yml up 
 ```
 
 #### Debugging docker-compose
