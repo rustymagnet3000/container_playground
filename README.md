@@ -4,6 +4,7 @@
 - [Docker](#docker)
     - [Dockerfile](#dockerfile)
     - [Build](#build)
+    - [Multi-Stage Builds](#multi-stage-builds)
     - [Run](#run)
     - [CMD, RUN and ENTRYPOINT](#cmd-run-and-entrypoint)
     - [Local credentials](#local-credentials)
@@ -160,13 +161,19 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 ```
 
+### Multi-Stage Builds
 
+- The Base Image can build, test and lint.  It might require a bunch of tools, libraries and package managers.
+- The child image gets uploaded to a cloud environment.  It is small, quick and has the minimal privilege and extras.  Most engineers will use "scratch image", Alpine or something else when putting an app into AWS.
 
 ### Run
 
 ```bash
 # interactive bash shell for container
 docker run -it $(pwd | xargs basename):latest bash
+
+# run Grafana. It will download if not locally stored
+docker run -d --name=grafana -p 3000:3000 grafana/grafana
 
 # Pass in .env file and var that can override the .env entries
 docker run -e MYVAR1 --env MYVAR2=foo --env-file ./env.list $(pwd | xargs basename):latest bash
@@ -300,23 +307,97 @@ docker compose ps
 # shotdown running containers
 docker-compose down
 docker-compose down --remove-orphans
+docker compose -f docker-compose.ci.yml down --remove-orphans
 
-# run in detached mode
-docker compose up -d
+# start
+docker compose up  # start containers with debug output
+docker compose up -d # run in detached mode [ no debug ouput ]
 
-# stop all containers
-docker compose up -d --build
+# Start both containers and run integration tests
+docker compose -f docker-compose-test.yml up -d
+docker compose -f docker-compose-test.yml up
 
-# stop all containers and remove Redis data
-docker-compose down --volumes
+# Verify you can access the Redis server
+docker exec -it redis-server redis-cli
+
+# Log into App Container with Go installed
+docker exec -it app-test bash
+
+# Access Redis server from the App Container
+/app# redis-cli -u redis://${REDIS_URL}
+
+# Run integration tests
+docker exec -it app-test make test
 
 # get env variables from webapp
 docker compose run webapp env
 docker compose run redis env
 
+# scale Redis instances
+$ docker-compose up --detach --scale redis-master=1 --scale redis-secondary=3
+
 # lint
 docker compose -f docker-compose.yml config
+```
 
+#### Integration tests
+
+Things of note:
+
+- The [wait-for](https://github.com/vishnubob/wait-for-it) bash script.  You load this into the container that is running the test.  This container should "wait" for Redis to be up and accepting connections.  Otherwise you get hard to diagnose errors.
+
+- The "default" network manages the DNS of the Redis server.  In the below case it sets the Redis server value as `redis-server:6379`.
+
+- When the tests are done, the "app-test" container will stop automatically.
+
+- No `volumes` were mounted fo the `redis-server`.  Careful with docker-compose and `volumes`.  I mounted a file as a directory which took time to debug.  I found it cleaner to create `Dockerfile_redis_test` and copy over the user `ACL file` and the `config file` during the Dockerfile.  This also minimises the size of the `docker-compose` file.
+
+```yaml
+version: "3.7"
+services:
+  redis-server:
+    container_name: "redis-server"
+    build:
+      context: .
+      dockerfile: Dockerfile_redis_test
+
+  app-test:
+    container_name: "app-test"
+    environment:
+      REDIS_URL:  $REDIS_URL
+      REDIS_USER: $REDIS_USER
+      REDIS_PSWD: $REDIS_PSWD
+    build:
+      context: .
+      target: integration-tests
+    depends_on:
+      - redis-server
+    entrypoint: [ "/app/wait-for.sh", $REDIS_URL, "--", "make", "test"]
+```
+
+To create the two containers and run the `make test`:
+
+```bash
+export REDIS_PSWD=bar \
+	&& export REDIS_USER=foo \
+	&& export REDIS_URL=redis-server:6379 \
+	docker compose -f docker-compose-test.yml up 
+```
+
+#### Debugging docker-compose
+
+```bash
+# Great to check multiple containers on same network!
+docker network inspect croof_default
+
+# This found my error in the container redis-server!
+docker logs --follow redis-server
+1:C 26 Sep 2022 12:33:47.625 # Fatal error, can't open config file '/usr/local/etc/redis/redis.conf': No such file or directory
+
+# check no cached image causing issue
+docker compose down 
+docker rmi -f $(docker images -a -q)
+docker-compose up
 ```
 
 ### Image introspection
@@ -719,6 +800,13 @@ pip install -r requirements.txt
 sbt "-Dsbt.log.noformat=true" dependencyTree
 sbt "-Dsbt.log.noformat=true" coursierDependencyTree
 
+# Scala single file
+snyk monitor --severity-threshold=high --file=api-integration-util/build.sbt
+
+https://docs.snyk.io/features/snyk-cli/test-for-vulnerabilities/scan-all-unmanaged-jar-files
+
+https://docs.snyk.io/products/snyk-open-source/language-and-package-manager-support/snyk-for-java-gradle-maven
+
 # install SBT Dependency Graph https://support.snyk.io/hc/en-us/articles/360004167317
 echo "addSbtPlugin(\"net.virtual-void\" % \"sbt-dependency-graph\" % \"0.10.0-RC1\")" > plugins.sbt
 
@@ -1092,10 +1180,20 @@ kubeval deploy.yml
 
 Writing [AWS Terraform files](https://blog.gruntwork.io/an-introduction-to-terraform-f17df9c6d180) introduction:
 
-```terraform
+```shell
+
+#upgrade
 brew upgrade hashicorp/tap/terraform
+
+#version
 terraform --version
+
+# auto complete
 terraform -install-autocomplete
+
+# reads the current settings from all managed remote objects and updates the Terraform state to match.
+terraform refresh
+
 terraform init
 terraform plan
 terraform apply
@@ -1113,6 +1211,7 @@ terraform validate
 #### Debug variables
 
 ```bash
+TFLOG=debug
 terraform refresh
 terraform show 
 terraform show -json | jq .

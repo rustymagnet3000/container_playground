@@ -1,0 +1,9 @@
+FROM redis:alpine3.16
+
+ENV REDIS_FILES=/usr/local/etc/redis
+
+# Redis Conf and ACL files
+COPY /internal/config/redis.conf /internal/config/users.acl $REDIS_FILES/
+
+# run redis-server with custom config file
+ENTRYPOINT ["/bin/sh", "-c", "redis-server $REDIS_FILES/redis.conf"]
