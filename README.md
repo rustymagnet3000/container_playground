@@ -26,10 +26,8 @@
     - [CircleCI and Docker Compose](#circleci-and-docker-compose)
     - [Share Docker Containers](#share-docker-containers)
     - [Resources](#resources)
+- [distroless](#distroless)
 - [Snyk](#snyk)
-    - [Setup](#setup)
-    - [Upgrade](#upgrade)
-    - [Verify it works](#verify-it-works)
     - [Find local auth token](#find-local-auth-token)
     - [Container scan](#container-scan)
     - [Code scan](#code-scan)
@@ -350,7 +348,25 @@ Things of note:
 
 - When the tests are done, the "app-test" container will stop automatically.
 
-- No `volumes` were mounted fo the `redis-server`.  Careful with docker-compose and `volumes`.  I mounted a file as a directory which took time to debug.  I found it cleaner to create `Dockerfile_redis_test` and copy over the user `ACL file` and the `config file` during the Dockerfile.  This also minimises the size of the `docker-compose` file.
+- No `volumes` were mounted fo the `redis-server`.  Careful with docker-compose and `volumes`.  I mounted a file as a directory which took time to debug. The error:
+
+```yaml
+     volumes:
+-      - $PWD/internal/config/redis.conf:/usr/local/etc/redis/redis.conf
+-      - $PWD/internal/config/users.acl:/usr/local/etc/redis/users.acl
+```
+
+This caused this:
+
+```shell
+/usr/local/etc/redis # ls -l
+total 8
+# directories !
+drwxr-xr-x    2 root     root          4096 Sep 26 09:32 redis.conf
+drwxr-xr-x    2 root     root          4096 Sep 26 09:32 users.acl
+```
+
+I could have fixed it with `- $PWD/internal/config/:/usr/local/etc/redis/`.  But it was cleaner to create `Dockerfile_redis_test` and copy over the user `ACL file` and the `config file` during the Dockerfile.  This also kept the `docker-compose` file clean.
 
 ```yaml
 version: "3.7"
@@ -731,24 +747,30 @@ circleci local execute \
 
 <https://circleci.com/docs/2.0/ssh-access-jobs/>
 
-## Snyk
+## distroless
 
-### Setup
+```shell
+# distroless with shell + root
+docker run -it --rm --name base -u 0 gcr.io/distroless/base:debug
+
+# normal distroless image fails as no echo installed
+docker run -it foo echo "hello world"
+
+# put app in /usr/bin/ and this works
+docker run -it foo app version
+```
+
+## Snyk
 
 ```bash
 brew install npm
 npm install -g snyk
 npm i snyk
-```
 
-### Upgrade
+# Upgrade
+npm i -g snyk
 
-`npm i -g snyk`
-
-### Verify it works
-
-```bash
-snyk version
+# Verify it works
 snyk auth
 ```
 
@@ -762,7 +784,7 @@ ffffffff-eeee-dddd-cccc-4fd7923c9cc8
 
 cat ~/.config/configstore/snyk.json 
 {
-        "api": "ffffffff-eeee-dddd-cccc-4fd7923c9cc8",
+        "api": "ffffffff-eeee-dddd-cccc-dddddddddddd",
         "org": "foobar"
 }% 
 ```
@@ -848,22 +870,25 @@ snyk test --severity-threshold="high" --json > snyk.json
 
 ### Infrastructure as Code scanning
 
-```bash
+```shell
+# snyk
 // individual files
 snyk iac test Kubernetes.yaml
 snyk iac test terraform_file.tf
-
 // folder and sub-folders
 snyk iac test
 snyk iac test | grep '✗'
 snyk iac test --severity-threshold=high
 snyk iac test --severity-threshold=high --json > results.json
-```
 
-```bash
-// tfsec scans entire directory of Terraform files
+# tfsec
 brew install tfsec
 tfsec .
+
+# bridgecrew
+bridgecrew -d apps/foo --bc-api-key ${BC_TOKEN} --framework terraform
+bridgecrew --show-config
+bridgecrew -d apps/foo --bc-api-key ${BC_TOKEN} --framework terraform --repo-id foo/bar
 ```
 
 ## TwistLock
@@ -1285,5 +1310,4 @@ tflint --loglevel trace foobar.tf
 
 # Debug
 TFLINT_LOG=debug tflint
-
 ```
