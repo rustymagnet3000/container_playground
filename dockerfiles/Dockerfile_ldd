@@ -1,0 +1,13 @@
+# I wanted to see what dynamic libraries Sleep() depended on
+# https://musl.libc.org/
+# musl is an implementation of the C standard library built on top of the Linux system call API
+
+FROM alpine:latest
+
+ENV REDIS_FILES=/usr/local/etc/redis
+
+# Redis Conf and ACL files
+RUN apk add musl
+
+# entrypoint being a shell: docker run -it --rm musl_fun:latest
+ENTRYPOINT ["/bin/sh"]
