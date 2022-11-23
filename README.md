@@ -127,8 +127,11 @@ Reference: <https://pythonspeed.com/articles/docker-buildkit/>
 #### Build options
 
 ```bash
-# Build present working directory
+# Build and name to present working directory
 docker build -f Dockerfile -t $(pwd | xargs basename):latest .
+
+# Pro, speed tip, if using multi-stage builds only build final image
+ docker build -t $(pwd | xargs basename):latest . -t deploy
 
 # View progress in plaintext
 docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
@@ -169,6 +172,9 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 ```bash
 # interactive bash shell for container
 docker run -it $(pwd | xargs basename):latest bash
+
+# list files in /usr/bin
+docker run -it --rm app:latest ls -l /usr/bin
 
 # run Grafana. It will download if not locally stored
 docker run -d --name=grafana -p 3000:3000 grafana/grafana
@@ -750,14 +756,37 @@ circleci local execute \
 ## distroless
 
 ```shell
-# distroless with shell + root
+# why
+https://docs.aws.amazon.com/AmazonECS/latest/bestpracticesguide/security-tasks-containers.html
+
+# scratch vs distroless
+https://iximiuz.com/en/posts/containers-distroless-images/
+
+# distroless with shell + root + BusyBox ( echo, cat, sleep )
 docker run -it --rm --name base -u 0 gcr.io/distroless/base:debug
 
+# works on Debug distroless ( as BusyBox present ) but not non-debug
+docker run -it --rm app:latest sleep 5
+
+# inspect distroless
+dive gcr.io/distroless/static
+
 # normal distroless image fails as no echo installed
-docker run -it foo echo "hello world"
+docker run -it --rm  foo echo "hello world"
+docker run -it --rm foo sleep 1  
 
 # put app in /usr/bin/ and this works
 docker run -it foo app version
+
+# Builder image can also only contain application ( and no shell )
+docker run -it --rm "cgr.dev/chainguard/go":latest version
+< prints go version >
+
+# for statically compile Go apps CGO_ENABLED=0
+gcr.io/distroless/static
+
+# when app is not statically compiled and requires C libraries CGO_ENABLED=1
+gcr.io/distroless/base
 ```
 
 ## Snyk
@@ -1220,32 +1249,24 @@ terraform -install-autocomplete
 terraform refresh
 
 terraform init
+terraform console
 terraform plan
 terraform apply
 terraform output
 terraform output public_ip
-```
 
-#### Validate
-
-```bash
+# Validate
 terraform init -backend=false
-terraform validate  
-```
+terraform validate
 
-#### Debug variables
-
-```bash
+# Debug variables
 TFLOG=debug
 terraform refresh
 terraform show 
 terraform show -json | jq .
 
 # Remove inconsistent state ( when AWS and TF differ )
-terraform state rm -state=sandbox.tfstate module.apps.aws_elasticache_parameter_group.foo_elasticache_params
-
-# Lint ( macOS )
-brew install tflint
+terraform state rm -state=sandbox.tfstate module.apps.baz.foo_params
 ```
 
 #### APIs
@@ -1266,6 +1287,18 @@ value = index(local.foobar_domains, "foobar.fr")
 # Contains Boolean response
 contains(local.foobar_domains, "foobar.fr")
 
+# Lookup
+> lookup({a=["bob", "Alice"], b=["Alice"], c=[]}, "a", "what?")
+[
+  "bob",
+  "Alice",
+]
+> lookup({a=["bob", "Alice"], b=["Alice"], c=[]}, "c", "what?")
+[]
+> lookup({a=["bob", "Alice"], b=["Alice"], c=[]}, "d", "what?")
+"what?"
+
+
 ```
 
 #### Check installed versions
@@ -1280,26 +1313,23 @@ jq -r '
 '
 ```
 
-#### Where is lint
+#### tflint
 
 ```bash
-which tflint               
+# Lint ( macOS )
+brew install tflint
+
+#which tflint               
 /usr/local/bin/tflint
-```
 
-#### Set Cloud environment ( so lint rules work )
+# Set Cloud environment ( so lint rules work )
+# Copy in plug-in data from https://github.com/terraform-linters/tflint-ruleset-aws
+vi ~/.tflint.hcl
 
-`vi ~/.tflint.hcl`
+# Init the lint
+tflint --init
 
-Copy in plug-in data from [here](https://github.com/terraform-linters/tflint-ruleset-aws).
-
-#### Init the lint
-
-`tflint --init`
-
-#### TF file lint
-
-```bash
+# file lint
 tflint foobar_file.tf
 
 # Behind the scenes

@@ -31,3 +31,8 @@ output "get_index" {
 output "contains_french_record" {
   value = contains(local.foobar_domains, "foobar.fr")
 }
+
+
+output "subscribers_based_on_input_var" {
+  value = local.subscribers
+}
