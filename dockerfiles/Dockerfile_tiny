@@ -1,0 +1,5 @@
+FROM alpine:latest
+ENTRYPOINT ["sh"]
+
+# docker build -t tiny-play:0.0.1 -t tiny-play:latest -f dockerfiles/Dockerfile_tiny .
+# docker run -it --rm tiny-play:0.0.1

@@ -133,6 +133,9 @@ docker build -f Dockerfile -t $(pwd | xargs basename):latest .
 # Pro, speed tip, if using multi-stage builds only build final image
  docker build -t $(pwd | xargs basename):latest . -t deploy
 
+# multiple tags
+docker build -t tiny-play:0.0.1 -t tiny-play:latest -f dockerfiles/Dockerfile_tiny .
+
 # View progress in plaintext
 docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
 
