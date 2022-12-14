@@ -595,7 +595,7 @@ docker rmi -f duckll/ctf-box
 
 ### Sidecar design pattern
 
-There are [lots of design patterns](https://techbeacon.com/enterprise-it/7-container-design-patterns-you-need-know) with containers.  If containers only have "one responsibility", the `sidecar pattern` ensures you add common functionaly out of a container. This includes:
+There are lots of [containers design patterns](https://techbeacon.com/enterprise-it/7-container-design-patterns-you-need-know).  If a container only has "one responsibility", the `sidecar pattern` is useful.  For example:
 
 - Logging
 - Monitoring
