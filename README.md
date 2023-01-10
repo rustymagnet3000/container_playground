@@ -316,9 +316,18 @@ docker-compose down
 docker-compose down --remove-orphans
 docker compose -f docker-compose.ci.yml down --remove-orphans
 
-# start
-docker compose up  # start containers with debug output
-docker compose up -d # run in detached mode [ no debug ouput ]
+# start with debug output
+docker compose up
+
+# run in detached mode [ no debug ouput ]
+docker compose up -d 
+
+# start with Profiles
+docker-compose --profile test up -d
+
+#start only a single service
+docker-compose up -d echo-server-test 
+docker-compose logs
 
 # Start both containers and run integration tests
 docker compose -f docker-compose-test.yml up -d
@@ -595,7 +604,7 @@ docker rmi -f duckll/ctf-box
 
 ### Sidecar design pattern
 
-There are [lots of design patterns](https://techbeacon.com/enterprise-it/7-container-design-patterns-you-need-know) with containers.  If containers only have "one responsibility", the `sidecar pattern` ensures you add common functionaly out of a container. This includes:
+There are lots of [containers design patterns](https://techbeacon.com/enterprise-it/7-container-design-patterns-you-need-know).  If a container only has "one responsibility", the `sidecar pattern` is useful.  For example:
 
 - Logging
 - Monitoring
