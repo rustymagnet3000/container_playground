@@ -277,6 +277,27 @@ docker run -it <image> /bin/bash
 
 Command(s) not ignored when Docker container runs with command line parameters.
 
+For example, the `curlimages/curl` entrypoint is:
+
+```dockerfile
+COPY "entrypoint.sh" "/entrypoint.sh"
+CMD ["curl"]
+ENTRYPOINT ["/entrypoint.sh"]
+```
+
+The script is waits for URL. You don't even specify the `curl` starting command:
+
+```shell
+if [ "${1#-}" != "${1}" ] || [ -z "$(command -v "${1}")" ]; then
+  set -- curl "$@"
+fi
+exec "$@"
+```
+
+How do you get an interactive shell for debugging when the entrypoint overrides what you set ? Override the `Entrypoint`:
+
+`docker run -it --entrypoint /bin/sh curl-box-test:latest`
+
 ### Local credentials
 
 #### Current docker.io logged in user
