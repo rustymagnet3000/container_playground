@@ -17,6 +17,7 @@
 - [circleci](#circleci)
     - [Pass values from Docker Container to Host](#pass-values-from-docker-container-to-host)
     - [Set environment variable](#set-environment-variable)
+    - [Conditional Jobs](#conditional-jobs)
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
@@ -284,6 +285,10 @@ COPY "entrypoint.sh" "/entrypoint.sh"
 CMD ["curl"]
 ENTRYPOINT ["/entrypoint.sh"]
 ```
+
+To get the `curl version` you just pass in the flag:
+
+`docker run -it --rm curl-box:latest --version`
 
 The script is waits for URL. You don't even specify the `curl` starting command:
 
@@ -677,6 +682,38 @@ jobs:
 ```
 
 [Reference](https://circleci.com/docs/2.0/configuration-reference/#modifiers).
+
+### Conditional Jobs
+
+```yaml
+version: 2.1
+
+  test:
+    parameters:
+      integration_tests:
+        type: boolean
+        default: false
+    executor: macos
+    steps:
+      - when:
+          condition:
+            equal: [ false, << parameters.integration_tests >> ]
+          steps:
+            - run: echo "Not running Integration Tests"
+            - run: exit 0
+//
+
+workflows:
+
+  build_test_publish:
+    jobs:
+      - build:
+        ///
+      - test:
+          integration_tests: true
+          requires:
+            - build          
+```
 
 ### local setup
 
