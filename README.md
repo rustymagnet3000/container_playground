@@ -21,7 +21,7 @@
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
-    - [Speed](#speed)
+    - [Build a linear or matrix workflow](#build-a-linear-or-matrix-workflow)
     - [Define what branches you test on](#define-what-branches-you-test-on)
     - [On every config.yaml change](#on-every-configyaml-change)
     - [CircleCI and Docker Compose](#circleci-and-docker-compose)
@@ -176,6 +176,9 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 ```bash
 # interactive bash shell for container
 docker run -it $(pwd | xargs basename):latest bash
+
+# list running containers
+docker container ls --format "{{.Names}}  {{.Status}}  {{.State}} {{.CreatedAt}} ID:{{.ID}}"  
 
 # list files in /usr/bin
 docker run -it --rm app:latest ls -l /usr/bin
@@ -351,9 +354,8 @@ docker compose up -d
 # start with Profiles
 docker-compose --profile test up -d
 
-#start only a single service
-docker-compose up -d echo-server-test 
-docker-compose logs
+#start a single service and read logs
+docker-compose up -d curl-box-test && docker-compose logs
 
 # Start both containers and run integration tests
 docker compose -f docker-compose-test.yml up -d
@@ -686,6 +688,7 @@ jobs:
 ### Conditional Jobs
 
 ```yaml
+# with yaml
 version: 2.1
 
   test:
@@ -700,11 +703,10 @@ version: 2.1
             equal: [ false, << parameters.integration_tests >> ]
           steps:
             - run: echo "Not running Integration Tests"
-            - run: exit 0
-//
+            - run: circleci-agent step halt
+
 
 workflows:
-
   build_test_publish:
     jobs:
       - build:
@@ -713,6 +715,20 @@ workflows:
           integration_tests: true
           requires:
             - build          
+```
+
+But `bash` make me simpler:
+
+```yaml
+- run:
+  environment:
+    WIN_RESULT: <<parameters.win>>
+  command: | 
+    if [[ -z "${CIRCLE_PULL_REQUEST}" ]]; then
+      echo PR ${CIRCLE_PULL_REQUEST}
+    else
+      echo "not a pull request"
+    fi
 ```
 
 ### local setup
@@ -753,9 +769,7 @@ circleci config validate
 circleci config validate .circleci/config.yml
 ```
 
-### Speed
-
-Don't chain `requires` unless required:
+### Build a linear or matrix workflow
 
 ```yaml
 workflows:
