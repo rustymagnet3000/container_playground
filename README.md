@@ -721,8 +721,6 @@ But `bash` make me simpler:
 
 ```yaml
 - run:
-  environment:
-    WIN_RESULT: <<parameters.win>>
   command: | 
     if [[ -z "${CIRCLE_PULL_REQUEST}" ]]; then
       echo PR ${CIRCLE_PULL_REQUEST}
@@ -998,10 +996,16 @@ snyk iac test --severity-threshold=high --json > results.json
 brew install tfsec
 tfsec .
 
-# bridgecrew
-bridgecrew -d apps/foo --bc-api-key ${BC_TOKEN} --framework terraform
-bridgecrew --show-config
-bridgecrew -d apps/foo --bc-api-key ${BC_TOKEN} --framework terraform --repo-id foo/bar
+# checkov by Bridgecrew
+pip3 install -U checkov
+
+checkov --show-config
+
+checkov -d apps/myapp \
+	--check HIGH,CRITICAL,MEDIUM \
+        --bc-api-key ${BC_TOKEN} \
+        --prisma-api-url ${PRISMA_TENNANT} \
+        --framework terraform
 ```
 
 ## TwistLock
