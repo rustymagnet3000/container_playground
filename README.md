@@ -351,9 +351,6 @@ docker compose up
 # run in detached mode [ no debug ouput ]
 docker compose up -d 
 
-# start with Profiles
-docker-compose --profile test up -d
-
 #start a single service and read logs
 docker-compose up -d curl-box-test && docker-compose logs
 
@@ -383,6 +380,27 @@ $ docker-compose up --detach --scale redis-master=1 --scale redis-secondary=3
 # lint
 docker compose -f docker-compose.yml config
 ```
+
+#### Profile
+
+Docker Compose `Profile` flag is the inverse of what you expect.  Now I think of them as a way to "default off" containers you don't immediately need.
+
+Below, when you run `docker compose up` it will invoke only the db and api services.
+
+```yaml
+services:
+  db:
+    image: db-image
+
+  api:
+    image: web-api-image
+
+  frontend:
+    image: frontend-image
+    profiles: ['frontend'] # added this one
+```
+
+`docker compose --profile=frontend up` at a later point just to start `frontend`.
 
 #### Integration tests
 
