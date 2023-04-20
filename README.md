@@ -21,7 +21,7 @@
     - [local setup](#local-setup)
     - [circleci setup](#circleci-setup)
     - [Validate config file](#validate-config-file)
-    - [Speed](#speed)
+    - [Build a linear or matrix workflow](#build-a-linear-or-matrix-workflow)
     - [Define what branches you test on](#define-what-branches-you-test-on)
     - [On every config.yaml change](#on-every-configyaml-change)
     - [CircleCI and Docker Compose](#circleci-and-docker-compose)
@@ -176,6 +176,9 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 ```bash
 # interactive bash shell for container
 docker run -it $(pwd | xargs basename):latest bash
+
+# list running containers
+docker container ls --format "{{.Names}}  {{.Status}}  {{.State}} {{.CreatedAt}} ID:{{.ID}}"  
 
 # list files in /usr/bin
 docker run -it --rm app:latest ls -l /usr/bin
@@ -348,12 +351,8 @@ docker compose up
 # run in detached mode [ no debug ouput ]
 docker compose up -d 
 
-# start with Profiles
-docker-compose --profile test up -d
-
-#start only a single service
-docker-compose up -d echo-server-test 
-docker-compose logs
+#start a single service and read logs
+docker-compose up -d curl-box-test && docker-compose logs
 
 # Start both containers and run integration tests
 docker compose -f docker-compose-test.yml up -d
@@ -381,6 +380,27 @@ $ docker-compose up --detach --scale redis-master=1 --scale redis-secondary=3
 # lint
 docker compose -f docker-compose.yml config
 ```
+
+#### Profile
+
+Docker Compose `Profile` flag is the inverse of what you expect.  Now I think of them as a way to "default off" containers you don't immediately need.
+
+Below, when you run `docker compose up` it will invoke only the db and api services.
+
+```yaml
+services:
+  db:
+    image: db-image
+
+  api:
+    image: web-api-image
+
+  frontend:
+    image: frontend-image
+    profiles: ['frontend'] # added this one
+```
+
+`docker compose --profile=frontend up` at a later point just to start `frontend`.
 
 #### Integration tests
 
@@ -686,6 +706,7 @@ jobs:
 ### Conditional Jobs
 
 ```yaml
+# with yaml
 version: 2.1
 
   test:
@@ -700,11 +721,10 @@ version: 2.1
             equal: [ false, << parameters.integration_tests >> ]
           steps:
             - run: echo "Not running Integration Tests"
-            - run: exit 0
-//
+            - run: circleci-agent step halt
+
 
 workflows:
-
   build_test_publish:
     jobs:
       - build:
@@ -713,6 +733,18 @@ workflows:
           integration_tests: true
           requires:
             - build          
+```
+
+But `bash` make me simpler:
+
+```yaml
+- run:
+  command: | 
+    if [[ -z "${CIRCLE_PULL_REQUEST}" ]]; then
+      echo PR ${CIRCLE_PULL_REQUEST}
+    else
+      echo "not a pull request"
+    fi
 ```
 
 ### local setup
@@ -753,9 +785,7 @@ circleci config validate
 circleci config validate .circleci/config.yml
 ```
 
-### Speed
-
-Don't chain `requires` unless required:
+### Build a linear or matrix workflow
 
 ```yaml
 workflows:
@@ -984,10 +1014,16 @@ snyk iac test --severity-threshold=high --json > results.json
 brew install tfsec
 tfsec .
 
-# bridgecrew
-bridgecrew -d apps/foo --bc-api-key ${BC_TOKEN} --framework terraform
-bridgecrew --show-config
-bridgecrew -d apps/foo --bc-api-key ${BC_TOKEN} --framework terraform --repo-id foo/bar
+# checkov by Bridgecrew
+pip3 install -U checkov
+
+checkov --show-config
+
+checkov -d apps/myapp \
+	--check HIGH,CRITICAL,MEDIUM \
+        --bc-api-key ${BC_TOKEN} \
+        --prisma-api-url ${PRISMA_TENNANT} \
+        --framework terraform
 ```
 
 ## TwistLock
