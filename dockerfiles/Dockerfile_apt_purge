@@ -1,0 +1,9 @@
+FROM debian:stable-slim
+RUN mkdir /foodir && \
+    apt-get update && \
+    apt-get install -y \
+    wget && \
+    apt-get purge wget -y
+
+# Container start
+ENTRYPOINT [ "echo", "Hello World" ]
