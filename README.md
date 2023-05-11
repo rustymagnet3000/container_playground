@@ -54,7 +54,10 @@
     - [KubeVal](#kubeval)
     - [KubeSec](#kubesec)
 - [Terraform](#terraform)
-    - [Writing](#writing)
+    - [set up](#set-up)
+    - [show & output](#show--output)
+    - [import](#import)
+    - [rm](#rm)
 
 <!-- /TOC -->
 
@@ -1336,12 +1339,9 @@ kubeval deploy.yml
 
 ## Terraform
 
-### Writing
-
-Writing [AWS Terraform files](https://blog.gruntwork.io/an-introduction-to-terraform-f17df9c6d180) introduction:
+### set up
 
 ```shell
-
 #upgrade
 brew upgrade hashicorp/tap/terraform
 
@@ -1351,28 +1351,71 @@ terraform --version
 # auto complete
 terraform -install-autocomplete
 
-# reads the current settings from all managed remote objects and updates the Terraform state to match.
-terraform refresh
-
+# load Modules and Providers
 terraform init
+
+# debug
 terraform console
-terraform plan
-terraform apply
-terraform output
-terraform output public_ip
+
+# Debug variables
+TFLOG=debug
+
+# don't get prompted to confirm apply
+terraform apply -auto-approve
+
+# terraform refresh was alias for
+terraform apply -refresh-only -auto-approve
+
+# list the resources known to Terraform 
+terraform state list
 
 # Validate
 terraform init -backend=false
 terraform validate
 
-# Debug variables
-TFLOG=debug
-terraform refresh
-terraform show 
+```
+
+### show & output
+
+```bash
+# print the `output` only
+terraform output
+
+
+# print single item
+terraform output public_ip
+
+# print the resources and `output`
+terraform show
 terraform show -json | jq .
 
-# Remove inconsistent state ( when AWS and TF differ )
+### show IDs when state imports get messy
+terraform show terraform.tfstate | grep -i -A4 "module.access_rules.cloudflare_access_rule.challenge_anzac"
+
+```
+
+### import
+
+```bash
+## import resource when it was a list of strings
+terraform import -state=foo.tfstate "module.access_rules.cloudflare_access_rule.foo[0]" account/abcd/1234
+```
+
+### rm
+
+```bash
+### dry run 
+terraform state rm -dry-run module.access_rules.cloudflare_access_rule.challenge_anzac
+
+# Remove inconsistent state from a module ( when AWS and TF differ )
 terraform state rm -state=sandbox.tfstate module.apps.baz.foo_params
+
+# remove state of a single item
+terraform state rm "module.access_rules.cloudflare_access_rule.challenge_anzac[1]"
+
+# remove state of a single item with a non default state filename
+terraform state rm -state=mystate.tfstate "module.access_rules.cloudflare_access_rule.challenge_anzac[6]"
+
 ```
 
 #### APIs
@@ -1432,7 +1475,7 @@ brew install tflint
 # Copy in plug-in data from https://github.com/terraform-linters/tflint-ruleset-aws
 vi ~/.tflint.hcl
 
-# Init the lint
+# update plug-in version to latest version and init
 tflint --init
 
 # file lint
