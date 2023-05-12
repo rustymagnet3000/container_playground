@@ -58,6 +58,8 @@
     - [show & output](#show--output)
     - [import](#import)
     - [rm](#rm)
+    - [code](#code)
+    - [tflint](#tflint)
 
 <!-- /TOC -->
 
@@ -1381,7 +1383,6 @@ terraform validate
 # print the `output` only
 terraform output
 
-
 # print single item
 terraform output public_ip
 
@@ -1401,6 +1402,24 @@ terraform show terraform.tfstate | grep -i -A4 "module.access_rules.cloudflare_a
 terraform import -state=foo.tfstate "module.access_rules.cloudflare_access_rule.foo[0]" account/abcd/1234
 ```
 
+#### import Cloudflare Resources
+
+```bash
+# Step1 - auto-generate the Cloudflare resources and append into the main.tf file
+cf-terraforming generate --token $CLOUDFLARE_API_TOKEN --resource-type cloudflare_access_rule >> main.tf
+
+# generate lines of "import statements"
+cf-terraforming import --resource-type "cloudflare_access_rule" --token $CLOUDFLARE_API_TOKEN --account $CLOUDFLARE_ACCOUNT_ID
+
+# paste the import statements
+terraform import cloudflare_access_rule.xxx account/aaa/111
+terraform import cloudflare_access_rule.yyy account/aaa/222
+
+# verify Terraform now controls the state
+terraform state list
+terraform show
+```
+
 ### rm
 
 ```bash
@@ -1415,10 +1434,9 @@ terraform state rm "module.access_rules.cloudflare_access_rule.challenge_anzac[1
 
 # remove state of a single item with a non default state filename
 terraform state rm -state=mystate.tfstate "module.access_rules.cloudflare_access_rule.challenge_anzac[6]"
-
 ```
 
-#### APIs
+### code
 
 ```bash
 # Gets List of strings
@@ -1450,19 +1468,7 @@ contains(local.foobar_domains, "foobar.fr")
 
 ```
 
-#### Check installed versions
-
-```bash
-brew list --formulae |
-xargs brew info --json |
-jq -r '
-    ["name", "latest", "installed version(s)"],
-    (.[] | [ .name, .versions.stable, (.installed[] | .version) ])
-    | @tsv
-'
-```
-
-#### tflint
+### tflint
 
 ```bash
 # Lint ( macOS )
