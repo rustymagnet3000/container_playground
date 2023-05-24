@@ -1393,6 +1393,24 @@ terraform show -json | jq .
 ### show IDs when state imports get messy
 terraform show terraform.tfstate | grep -i -A4 "module.access_rules.cloudflare_access_rule.challenge_anzac"
 
+# variables.tf
+variable "burger_ingrediant_list" {
+  type        = list(string)
+  description = "A list of all Burger ingrediants"
+  default     = ["cheese","bacon","lettuce","burger","relish"]
+
+# output.tf
+output "debugging_burgers" {
+  value = [for i, v in var.burger_ingrediant_list : "${i} is ${v}"]
+}
+# debugging_zones = [
+#   "0 is cheese",
+#   "1 is bacon",
+#   "2 is lettuce",
+#   "3 is burger",
+#   "4 is relish",
+# ]
+
 ```
 
 ### import
