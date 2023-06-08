@@ -1345,6 +1345,7 @@ kubeval deploy.yml
 
 ```shell
 #upgrade
+brew update  # update the Tap first
 brew upgrade hashicorp/tap/terraform
 
 #version
