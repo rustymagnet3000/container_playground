@@ -1360,8 +1360,9 @@ terraform init
 # debug
 terraform console
 
-# Debug variables
-TFLOG=debug
+# write debug logs to file
+$ export TF_LOG=”DEBUG”
+$ export TF_LOG_PATH=~foo.logs
 
 # don't get prompted to confirm apply
 terraform apply -auto-approve
@@ -1400,7 +1401,7 @@ variable "burger_ingrediant_list" {
   description = "A list of all Burger ingrediants"
   default     = ["cheese","bacon","lettuce","burger","relish"]
 
-# output.tf
+# output.tf this works on lists and maps
 output "debugging_burgers" {
   value = [for i, v in var.burger_ingrediant_list : "${i} is ${v}"]
 }
@@ -1411,6 +1412,26 @@ output "debugging_burgers" {
 #   "3 is burger",
 #   "4 is relish",
 # ]
+
+# map
+resource "foo" "bar" {
+  for_each   = var.countries_map
+  notes      = "${each.key} with country code ${each.value}"
+  mode       = "something"
+
+  configuration {
+    target = "country"
+    value  = each.value
+  }
+}
+variable "countries_map" {
+  type    = map
+  default = {
+    "Aussies" = "AU"
+    "Kiwis" = "NZ"
+    "Russia" = "RU"
+  }
+}
 
 ```
 
