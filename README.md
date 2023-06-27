@@ -1373,10 +1373,15 @@ terraform apply -refresh-only -auto-approve
 # list the resources known to Terraform 
 terraform state list
 
+# useful for listing Modules and Data sources
+terraform state list | awk -F'[/.]' '{print $1"."$2}' | uniq
+
+# refresh state in a single module
+terraform refresh -state=terraform.tfstate -target=module.foo
+
 # Validate
 terraform init -backend=false
 terraform validate
-
 ```
 
 ### show & output
