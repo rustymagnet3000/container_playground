@@ -1360,8 +1360,9 @@ terraform init
 # debug
 terraform console
 
-# Debug variables
-TFLOG=debug
+# write debug logs to file
+$ export TF_LOG=”DEBUG”
+$ export TF_LOG_PATH=~foo.logs
 
 # don't get prompted to confirm apply
 terraform apply -auto-approve
@@ -1372,10 +1373,15 @@ terraform apply -refresh-only -auto-approve
 # list the resources known to Terraform 
 terraform state list
 
+# useful for listing Modules and Data sources
+terraform state list | awk -F'[/.]' '{print $1"."$2}' | uniq
+
+# refresh state in a single module
+terraform refresh -state=terraform.tfstate -target=module.foo
+
 # Validate
 terraform init -backend=false
 terraform validate
-
 ```
 
 ### show & output
@@ -1400,7 +1406,7 @@ variable "burger_ingrediant_list" {
   description = "A list of all Burger ingrediants"
   default     = ["cheese","bacon","lettuce","burger","relish"]
 
-# output.tf
+# output.tf this works on lists and maps
 output "debugging_burgers" {
   value = [for i, v in var.burger_ingrediant_list : "${i} is ${v}"]
 }
@@ -1412,13 +1418,37 @@ output "debugging_burgers" {
 #   "4 is relish",
 # ]
 
+# map
+resource "foo" "bar" {
+  for_each   = var.countries_map
+  notes      = "${each.key} with country code ${each.value}"
+  mode       = "something"
+
+  configuration {
+    target = "country"
+    value  = each.value
+  }
+}
+variable "countries_map" {
+  type    = map
+  default = {
+    "Aussies" = "AU"
+    "Kiwis" = "NZ"
+    "Russia" = "RU"
+  }
+}
+
 ```
 
 ### import
 
 ```bash
-## import resource when it was a list of strings
+# import resource when dealing with a List of strings
 terraform import -state=foo.tfstate "module.access_rules.cloudflare_access_rule.foo[0]" account/abcd/1234
+
+
+# import resource when dealing with a Map. The value is "NeverNeverLand"
+terraform import -state=foo.tfstate "module.access_rules.cloudflare_access_rule.block_countries[\"NeverNeverLand\"]" account/abcd/1234
 ```
 
 #### import Cloudflare Resources
