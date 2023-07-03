@@ -1443,8 +1443,12 @@ variable "countries_map" {
 ### import
 
 ```bash
-## import resource when it was a list of strings
+# import resource when dealing with a List of strings
 terraform import -state=foo.tfstate "module.access_rules.cloudflare_access_rule.foo[0]" account/abcd/1234
+
+
+# import resource when dealing with a Map. The value is "NeverNeverLand"
+terraform import -state=foo.tfstate "module.access_rules.cloudflare_access_rule.block_countries[\"NeverNeverLand\"]" account/abcd/1234
 ```
 
 #### import Cloudflare Resources
