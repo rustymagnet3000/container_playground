@@ -1479,7 +1479,10 @@ terraform state rm -dry-run module.access_rules.cloudflare_access_rule.challenge
 terraform state rm -state=sandbox.tfstate module.apps.baz.foo_params
 
 # remove state of a single item
-terraform state rm "module.access_rules.cloudflare_access_rule.challenge_anzac[1]"
+terraform state rm "module.access_rules.cloudflare_access_rule.countries_to_challenge[1]"
+
+# remove all resources of a given name
+terraform state rm "module.access_rules.cloudflare_access_rule.countries_to_challenge"
 
 # remove state of a single item with a non default state filename
 terraform state rm -state=mystate.tfstate "module.access_rules.cloudflare_access_rule.challenge_anzac[6]"
