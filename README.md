@@ -766,12 +766,14 @@ circleci version
 
 ### circleci setup
 
-Go to web interface for CircleCI. It can auto generate the files and workflow.
-
-Then generate a `Personal Access Token` or `Project Access Token`.
+Go to [user token web interface](https://app.circleci.com/settings/user/tokens).  G enerate a `Personal Access Token`:
 
 ```bash
-circleci setup
+▶ circleci setup                 
+A CircleCI token is already set. Do you want to change it Yes
+CircleCI API Token ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+API token has been set.
+CircleCI Host https://circleci.com
 ```
 
 Then check it all worked:
@@ -1376,6 +1378,9 @@ terraform state list
 # useful for listing Modules and Data sources
 terraform state list | awk -F'[/.]' '{print $1"."$2}' | uniq
 
+# detect Provider differences
+terraform state pull | jq -r '.resources|.[].provider'
+
 # refresh state in a single module
 terraform refresh -state=terraform.tfstate -target=module.foo
 
@@ -1438,6 +1443,33 @@ variable "countries_map" {
   }
 }
 
+# join
+> var.my_markets
+tolist([
+  "NZ",
+  "AU",
+  "FR",
+  "GB",
+])
+
+# join(separator, list)
+> join(", ", var.my_markets)
+"NZ, AU, FR, GB"
+
+> join(" ", var.my_markets)
+"NZ AU FR GB"
+
+# double escaped for Expression statements
+> local.southern_european_markets
+[
+  "\"IT\"",
+  "\"FR\"",
+  "\"ES\"",
+  "\"GR\"",
+  "\"PT\"",
+]
+> join(" ", local.southern_european_markets)
+"\"IT\" \"FR\" \"ES\" \"GR\" \"PT\""
 ```
 
 ### import
