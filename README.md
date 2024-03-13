@@ -146,7 +146,7 @@ docker build -t tiny-play:0.0.1 -t tiny-play:latest -f dockerfiles/Dockerfile_ti
 docker build -f Dockerfile -t $(pwd | xargs basename):latest . --progress=plain
 
 # Target a setp.  Debug a multi-stage build
-docker build -f Dockerfile --target builder -t $(pwd | xargs basename):latest .
+docker build -f Dockerfile --target builder -t $(pwd | xargs basename):builder .
 
 # docker-compose with BuildKit for Secrets
 DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml 
@@ -173,8 +173,9 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 ### Multi-Stage Builds
 
-- The Base Image can build, test and lint.  It might require a bunch of tools, libraries and package managers.
-- The child image gets uploaded to a cloud environment.  It is small, quick and has the minimal privilege and extras.  Most engineers will use "scratch image", Alpine or something else when putting an app into AWS.
+- The Base Image can compile, test, lint and more.
+- It's probably large with many tools, libraries and package managers.
+- The child image gets uploaded to a cloud environment.  It is small, quick and has the minimal privilege and extras.  Most engineers will use a `scratch image`, Alpine or something else when putting an app into AWS.
 
 ### Run
 
