@@ -1343,6 +1343,18 @@ kubeval deploy.yml
 
 `docker run -v $(pwd):/project zegl/kube-score:v1.10.0 score deploy.yml`
 
+## HashiCorp Vault
+
+```shell
+
+# set up
+brew tap hashicorp/tap
+brew install hashicorp/tap/vault
+vault
+vault server -dev
+```
+
+
 ## Terraform
 
 ### set up
