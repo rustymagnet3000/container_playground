@@ -56,6 +56,7 @@
 - [Terraform](#terraform)
     - [set up](#set-up)
     - [show & output](#show--output)
+    - [Create a List of Objects from List of Values](#create-a-list-of-objects-from-list-of-values)
     - [import](#import)
     - [rm](#rm)
     - [code](#code)
@@ -1399,8 +1400,12 @@ terraform output
 # print single item
 terraform output public_ip
 
+# get an ID from a Resource in local state file
+terraform state show 'module.foo.example.user[0]' 
+
 # print the resources and `output`
 terraform show
+brew upgrade gh
 terraform show -json | jq .
 
 ### show IDs when state imports get messy
@@ -1471,6 +1476,33 @@ tolist([
 ]
 > join(" ", local.southern_european_markets)
 "\"IT\" \"FR\" \"ES\" \"GR\" \"PT\""
+```
+
+### Create a List of Objects from List of Values
+
+```shell
+# env variable: TF_VAR_emails is array of emails ["foo@bar.com"]
+variable "emails" {
+  description = "Email addresses interested parties"
+
+  type    = list(string)
+  default = []
+}
+
+resource "cloudflare_notification_policy" "dos_attack_l7_notification" {
+  account_id  = var.cloudflare_account_id
+  name        = "dos_attack_l7 notification"
+  description = "Notification policy for dos_attack_l7"
+  enabled     = true
+  alert_type  = "dos_attack_l7"
+  mechanisms = {
+    email = [
+      for email in var.emails : {
+        id = email
+      }
+    ]
+  }
+}
 ```
 
 ### import
