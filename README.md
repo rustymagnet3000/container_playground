@@ -1377,8 +1377,8 @@ terraform init
 terraform console
 
 # write debug logs to file
-$ export TF_LOG=”DEBUG”
-$ export TF_LOG_PATH=~foo.logs
+export TF_LOG=”DEBUG”
+export TF_LOG_PATH=~foo.logs
 
 # don't get prompted to confirm apply
 terraform apply -auto-approve
@@ -1488,33 +1488,9 @@ tolist([
 ]
 > join(" ", local.southern_european_markets)
 "\"IT\" \"FR\" \"ES\" \"GR\" \"PT\""
-```
 
-### Create a List of Objects from List of Values
-
-```shell
-# env variable: TF_VAR_emails is array of emails ["foo@bar.com"]
-variable "emails" {
-  description = "Email addresses interested parties"
-
-  type    = list(string)
-  default = []
-}
-
-resource "cloudflare_notification_policy" "dos_attack_l7_notification" {
-  account_id  = var.cloudflare_account_id
-  name        = "dos_attack_l7 notification"
-  description = "Notification policy for dos_attack_l7"
-  enabled     = true
-  alert_type  = "dos_attack_l7"
-  mechanisms = {
-    email = [
-      for email in var.emails : {
-        id = email
-      }
-    ]
-  }
-}
+# debug with console
+`echo 'local.foo_hosts' | terraform console`
 ```
 
 ### import
