@@ -425,12 +425,12 @@ services:
 }
 
 @test "page not found reports OK" {
-    run docker exec -t sidecar-sir sh -c 'curl -s -o /dev/null -w "%{http_code}" "http://app:8000/nonexistent-page"'
+    run docker exec -t sidecar sh -c 'curl -s -o /dev/null -w "%{http_code}" "http://app:8000/nonexistent-page"'
     [ "$output" = "404" ]
 }
 
 @test "test static assets loaded OK" {
-    run docker exec -t app-sir sh -c "stat assets/output.css"
+    run docker exec -t app sh -c "stat assets/output.css"
     [ $status = 0 ]
 ```
 
