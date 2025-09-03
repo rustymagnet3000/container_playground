@@ -5,22 +5,22 @@ provider "aws" {
 }
 
 resource "aws_instance" "example" {
-    ami           = "ami-0fbec3e0504ee1970"
-    instance_type = "t2.micro"
-    vpc_security_group_ids = [aws_security_group.instance.id]
+  ami                    = "ami-0fbec3e0504ee1970"
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.instance.id]
 
-    user_data = <<-EOF
+  user_data = <<-EOF
                 #!/bin/bash
                 echo "Hello RM World" > index.html
                 nohup busybox httpd -f -p "${var.server_port}" &
                 EOF
-    tags = {
-        Name = "terraform-example"
-    }
+  tags = {
+    Name = "terraform-example"
+  }
 }
 
 resource "aws_security_group" "instance" {
-    name = "terraform-example-instance"
+  name = "terraform-example-instance"
   ingress {
     description = "Open port 8080 ingress traffic"
     from_port   = var.server_port
@@ -31,16 +31,16 @@ resource "aws_security_group" "instance" {
 }
 
 resource "aws_launch_configuration" "example" {
-    image_id           = "ami-0fbec3e0504ee1970"
-    instance_type = "t2.micro"
-    security_groups = [aws_security_group.instance.id]
+  image_id        = "ami-0fbec3e0504ee1970"
+  instance_type   = "t2.micro"
+  security_groups = [aws_security_group.instance.id]
 
-    user_data = <<-EOF
+  user_data = <<-EOF
             #!/bin/bash
             echo "Hello RM World" > index.html
             nohup busybox httpd -f -p "${var.server_port}" &
             EOF
-    lifecycle {
-        create_before_destroy = true
-    }
+  lifecycle {
+    create_before_destroy = true
+  }
 }
