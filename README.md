@@ -414,12 +414,12 @@ services:
 ```shell
 # Bats (Bash Automated Testing System)
 
-@test "app-sir starts OK & has a shell" {
+@test "container starts OK & has a shell" {
     run docker exec -t app sh -c "ls -l"
     [[ ${lines[0]} =~ 'total' ]]
 }
 
-@test "sidecar can send request OK" {
+@test "sidecar container can send request OK" {
     run docker exec -t sidecar sh -c 'curl --silent  "http://app:8000/health"'
     [ $status = 0 ]
 }
