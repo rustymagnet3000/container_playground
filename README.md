@@ -413,6 +413,7 @@ services:
 
 ```shell
 # Bats (Bash Automated Testing System)
+# /tests/simples.bats
 
 @test "container starts OK & has a shell" {
     run docker exec -t app sh -c "ls -l"
