@@ -409,16 +409,36 @@ services:
 
 `docker compose --profile=frontend up` at a later point just to start `frontend`.
 
-#### Integration tests
+#### Tests
+
+```shell
+# Bats (Bash Automated Testing System)
+
+@test "app-sir starts OK & has a shell" {
+    run docker exec -t app sh -c "ls -l"
+    [[ ${lines[0]} =~ 'total' ]]
+}
+
+@test "sidecar can send request OK" {
+    run docker exec -t sidecar sh -c 'curl --silent  "http://app:8000/health"'
+    [ $status = 0 ]
+}
+
+@test "page not found reports OK" {
+    run docker exec -t sidecar-sir sh -c 'curl -s -o /dev/null -w "%{http_code}" "http://app:8000/nonexistent-page"'
+    [ "$output" = "404" ]
+}
+
+@test "test static assets loaded OK" {
+    run docker exec -t app-sir sh -c "stat assets/output.css"
+    [ $status = 0 ]
+```
 
 Things of note:
 
 - The [wait-for](https://github.com/vishnubob/wait-for-it) bash script.  You load this into the container that is running the test.  This container should "wait" for Redis to be up and accepting connections.  Otherwise you get hard to diagnose errors.
-
 - The "default" network manages the DNS of the Redis server.  In the below case it sets the Redis server value as `redis-server:6379`.
-
 - When the tests are done, the "app-test" container will stop automatically.
-
 - No `volumes` were mounted fo the `redis-server`.  Careful with docker-compose and `volumes`.  I mounted a file as a directory which took time to debug. The error:
 
 ```yaml
