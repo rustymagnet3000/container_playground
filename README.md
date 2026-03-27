@@ -1,20 +1,54 @@
 # Docker, Containers, Snyk and Kubernetes
 <!-- TOC depthfrom:2 depthto:3 withlinks:true updateonsave:true orderedlist:false -->
 
-- [Docker](#docker)
+- [Docker, Containers, Snyk and Kubernetes](#docker-containers-snyk-and-kubernetes)
+  - [Terraform](#terraform)
+    - [set up](#set-up)
+    - [debugging Terraform](#debugging-terraform)
+    - [import](#import)
+      - [import Cloudflare Resources](#import-cloudflare-resources)
+    - [rm](#rm)
+    - [code](#code)
+    - [tflint](#tflint)
+  - [Docker](#docker)
     - [Dockerfile](#dockerfile)
+      - [Pro tip - chown](#pro-tip---chown)
+      - [Pro tip - pip caching](#pro-tip---pip-caching)
+      - [lint](#lint)
+      - [Python - do I use a virtualenv?](#python---do-i-use-a-virtualenv)
+      - [multiple RUN vs single chained RUN](#multiple-run-vs-single-chained-run)
+      - [Order matters](#order-matters)
+      - [Dockerfile design](#dockerfile-design)
+      - [BuildKit](#buildkit)
     - [Build](#build)
+      - [Build options](#build-options)
     - [Multi-Stage Builds](#multi-stage-builds)
     - [Run](#run)
     - [CMD, RUN and ENTRYPOINT](#cmd-run-and-entrypoint)
+      - [RUN](#run-1)
+      - [CMD](#cmd)
+      - [ENTRYPOINT](#entrypoint)
     - [Local credentials](#local-credentials)
+      - [Current docker.io logged in user](#current-dockerio-logged-in-user)
+      - [Contents of Credential Helper](#contents-of-credential-helper)
     - [Docker Compose](#docker-compose)
+      - [Profile](#profile)
+      - [Tests](#tests)
+      - [Debugging docker-compose](#debugging-docker-compose)
     - [Image introspection](#image-introspection)
+      - [Skopeo](#skopeo)
+      - [Search for secrets in layers](#search-for-secrets-in-layers)
+      - [Logs](#logs)
+      - [Inspect](#inspect)
+      - [Push to DockerHub](#push-to-dockerhub)
     - [Containers](#containers)
     - [Copy](#copy)
+      - [from Host to Docker Container](#from-host-to-docker-container)
+      - [check if image can mount disk on Host](#check-if-image-can-mount-disk-on-host)
     - [Clean-up](#clean-up)
     - [Sidecar design pattern](#sidecar-design-pattern)
-- [circleci](#circleci)
+      - [Security references](#security-references)
+  - [circleci](#circleci)
     - [Pass values from Docker Container to Host](#pass-values-from-docker-container-to-host)
     - [Set environment variable](#set-environment-variable)
     - [Conditional Jobs](#conditional-jobs)
@@ -27,8 +61,8 @@
     - [CircleCI and Docker Compose](#circleci-and-docker-compose)
     - [Share Docker Containers](#share-docker-containers)
     - [Resources](#resources)
-- [distroless](#distroless)
-- [Snyk](#snyk)
+  - [distroless](#distroless)
+  - [Snyk](#snyk)
     - [Find local auth token](#find-local-auth-token)
     - [Container scan](#container-scan)
     - [Code scan](#code-scan)
@@ -38,31 +72,361 @@
     - [Test Javascript packages via CLI](#test-javascript-packages-via-cli)
     - [Monitor for new vulnerabilities](#monitor-for-new-vulnerabilities)
     - [Infrastructure as Code scanning](#infrastructure-as-code-scanning)
-- [TwistLock](#twistlock)
-- [Kubernetes](#kubernetes)
+  - [TwistLock](#twistlock)
+  - [Kubernetes](#kubernetes)
     - [Commands](#commands)
     - [Pod Creation](#pod-creation)
     - [Namespaces](#namespaces)
     - [can-i get](#can-i-get)
     - [API Server](#api-server)
     - [Secrets](#secrets)
-    - [Logs](#logs)
+    - [Logs](#logs-1)
     - [Delete](#delete)
     - [Drain and Cordon](#drain-and-cordon)
     - [Kubernetes auto complete](#kubernetes-auto-complete)
     - [Kubernetes for Docker Desktop](#kubernetes-for-docker-desktop)
     - [KubeVal](#kubeval)
+      - [Raft](#raft)
     - [KubeSec](#kubesec)
-- [Terraform](#terraform)
-    - [set up](#set-up)
-    - [debugging Terraform](#debugging-terraform)
-    - [Create a List of Objects from List of Values](#create-a-list-of-objects-from-list-of-values)
-    - [import](#import)
-    - [rm](#rm)
-    - [code](#code)
-    - [tflint](#tflint)
+      - [Kube-score](#kube-score)
+  - [HashiCorp Vault](#hashicorp-vault)
 
 <!-- /TOC -->
+
+
+## Terraform
+
+### set up
+
+```shell
+#upgrade
+brew update  # update the Tap first
+brew upgrade hashicorp/tap/terraform
+
+#version
+terraform --version
+
+# auto complete
+terraform -install-autocomplete
+
+# load Modules and Providers
+terraform init
+
+# debug
+terraform console
+
+# write debug logs to file
+export TF_LOG=”DEBUG”
+export TF_LOG_PATH=~foo.logs
+
+# don't get prompted to confirm apply
+terraform apply -auto-approve
+
+# terraform refresh was alias for
+terraform apply -refresh-only -auto-approve
+
+# list the resources known to Terraform 
+terraform state list
+
+# useful for listing Modules and Data sources
+terraform state list | awk -F'[/.]' '{print $1"."$2}' | uniq
+
+# detect Provider differences
+terraform state pull | jq -r '.resources|.[].provider'
+
+# refresh state in a single module
+terraform refresh -state=terraform.tfstate -target=module.foo
+
+# Validate
+terraform init -backend=false
+terraform validate
+```
+
+### debugging Terraform
+
+```bash
+# print the `output` only
+terraform output
+
+# print single item
+terraform output public_ip
+
+# get an ID from a Resource in local state file
+terraform state show 'module.foo.example.user[0]' 
+
+# print the resources and `output`
+terraform show
+terraform show -json | jq .
+
+### show IDs when state imports get messy
+terraform show terraform.tfstate | grep -i -A4 "module.access_rules.cloudflare_access_rule.challenge_anzac"
+
+# variables.tf
+variable "burger_ingrediant_list" {
+  type        = list(string)
+  description = "A list of all Burger ingrediants"
+  default     = ["cheese","bacon","lettuce","burger","relish"]
+
+# output.tf this works on lists and maps
+output "debugging_burgers" {
+  value = [for i, v in var.burger_ingrediant_list : "${i} is ${v}"]
+}
+# debugging_zones = [
+#   "0 is cheese",
+#   "1 is bacon",
+#   "2 is lettuce",
+#   "3 is burger",
+#   "4 is relish",
+# ]
+
+# map
+resource "foo" "bar" {
+  for_each   = var.countries_map
+  notes      = "${each.key} with country code ${each.value}"
+  mode       = "something"
+
+  configuration {
+    target = "country"
+    value  = each.value
+  }
+}
+variable "countries_map" {
+  type    = map
+  default = {
+    "Aussies" = "AU"
+    "Kiwis" = "NZ"
+    "Russia" = "RU"
+  }
+}
+
+# join
+> var.my_markets
+tolist([
+  "NZ",
+  "AU",
+  "FR",
+  "GB",
+])
+
+# join(separator, list)
+> join(", ", var.my_markets)
+"NZ, AU, FR, GB"
+
+> join(" ", var.my_markets)
+"NZ AU FR GB"
+
+# double escaped for Expression statements
+> local.southern_european_markets
+[
+  "\"IT\"",
+  "\"FR\"",
+  "\"ES\"",
+  "\"GR\"",
+  "\"PT\"",
+]
+> join(" ", local.southern_european_markets)
+"\"IT\" \"FR\" \"ES\" \"GR\" \"PT\""
+
+# debug with console
+`echo 'local.foo_hosts' | terraform console`
+
+# terraform console - interactive REPL
+terraform console
+
+# print keys from a map
+> keys(var.countries_map)
+tolist([
+  "Aussies",
+  "Kiwis",
+  "Russia",
+])
+
+# print values from a map
+> values(var.countries_map)
+tolist([
+  "AU",
+  "NZ",
+  "RU",
+])
+
+# pipe keys to console (non-interactive)
+echo 'keys(var.countries_map)' | terraform console
+
+# lookup a value by key
+> lookup(var.countries_map, "Aussies", "unknown")
+"AU"
+
+# check if a key exists
+> contains(keys(var.countries_map), "Kiwis")
+true
+
+# loop through a map - returns list of "key: value" strings
+> [for k, v in var.countries_map : "${k}: ${v}"]
+tolist([
+  "Aussies: AU",
+  "Kiwis: NZ",
+  "Russia: RU",
+])
+
+# loop through a map - keys only
+> [for k in keys(var.countries_map) : k]
+tolist([
+  "Aussies",
+  "Kiwis",
+  "Russia",
+])
+
+# pipe a loop to console (non-interactive)
+echo '[for k, v in var.countries_map : "${k}: ${v}"]' | terraform console
+
+# type inspection
+> type(var.countries_map)
+map(string)
+
+# length of a map
+> length(var.countries_map)
+3
+
+# merge two maps
+> merge(var.countries_map, {"Japan" = "JP"})
+{
+  "Aussies" = "AU"
+  "Japan"   = "JP"
+  "Kiwis"   = "NZ"
+  "Russia"  = "RU"
+}
+
+# filter a map by value - useful for debugging why for_each iterates unexpectedly
+> {for k, v in var.countries_map : k => v if v != "RU"}
+{
+  "Aussies" = "AU"
+  "Kiwis"   = "NZ"
+}
+
+# distinct values as a set
+> toset(values(var.countries_map))
+toset([
+  "AU",
+  "NZ",
+  "RU",
+])
+
+# string interpolation with a local
+> "region is ${local.region}"
+"region is ap-southeast-2"
+```
+
+### import
+
+```bash
+# import resource when dealing with a List of strings
+terraform import -state=foo.tfstate "access_rules.cloudflare_access_rule.foo[0]" account/abcd/1234
+
+
+# import resource when dealing with a Map. The value is "NeverNeverLand"
+terraform import -state=foo.tfstate "access_rules.cloudflare_access_rule.block_countries[\"NeverNeverLand\"]" account/abcd/1234
+```
+
+#### import Cloudflare Resources
+
+```bash
+# Step1 - auto-generate the Cloudflare resources and append into the main.tf file
+cf-terraforming generate --token $CLOUDFLARE_API_TOKEN --resource-type cloudflare_access_rule >> main.tf
+
+# generate lines of "import statements"
+cf-terraforming import --resource-type "cloudflare_access_rule" --token $CLOUDFLARE_API_TOKEN --account $CLOUDFLARE_ACCOUNT_ID
+
+# paste the import statements
+terraform import cloudflare_access_rule.xxx account/aaa/111
+terraform import cloudflare_access_rule.yyy account/aaa/222
+
+# verify Terraform now controls the state
+terraform state list
+terraform show
+```
+
+### rm
+
+```bash
+### dry run 
+terraform state rm -dry-run access_rules.cloudflare_access_rule.challenge_anzac
+
+# Remove inconsistent state from a module ( when AWS and TF differ )
+terraform state rm -state=sandbox.tfstate module.apps.baz.foo_params
+
+# remove state of a single item
+terraform state rm "access_rules.cloudflare_access_rule.countries_to_challenge[1]"
+
+# remove all resources of a given name
+terraform state rm "access_rules.cloudflare_access_rule.countries_to_challenge"
+
+# remove state of a single item with a non default state filename
+terraform state rm -state=mystate.tfstate "access_rules.cloudflare_access_rule.challenge_anzac[6]"
+```
+
+### code
+
+```bash
+# Gets List of strings
+value = local.country_codes
+
+# Convert from List of Strings to Map
+value = { for idx, val in local.foobar_domains : idx => val }
+
+# Get List of String values if
+value = [for x in local.foobar_domains : x if x == "foobar.fr"]
+
+# get index
+value = index(local.foobar_domains, "foobar.fr")
+
+# Contains Boolean response
+contains(local.foobar_domains, "foobar.fr")
+
+# Lookup
+> lookup({a=["bob", "Alice"], b=["Alice"], c=[]}, "a", "what?")
+[
+  "bob",
+  "Alice",
+]
+> lookup({a=["bob", "Alice"], b=["Alice"], c=[]}, "c", "what?")
+[]
+> lookup({a=["bob", "Alice"], b=["Alice"], c=[]}, "d", "what?")
+"what?"
+
+
+```
+
+### tflint
+
+```bash
+# Lint ( macOS )
+brew install tflint
+
+#which tflint               
+/usr/local/bin/tflint
+
+# Set Cloud environment ( so lint rules work )
+# Copy in plug-in data from https://github.com/terraform-linters/tflint-ruleset-aws
+vi ~/.tflint.hcl
+
+# update plug-in version to latest version and init
+tflint --init
+
+# file lint
+tflint foobar_file.tf
+
+# Behind the scenes
+tflint -c ~/.tflint.hcl foobar.tf 
+
+# Set log level
+tflint --loglevel trace foobar.tf
+
+# Debug
+TFLINT_LOG=debug tflint
+```
+
+
+
 
 ## Docker
 
@@ -1373,337 +1737,4 @@ brew tap hashicorp/tap
 brew install hashicorp/tap/vault
 vault
 vault server -dev
-```
-
-
-## Terraform
-
-### set up
-
-```shell
-#upgrade
-brew update  # update the Tap first
-brew upgrade hashicorp/tap/terraform
-
-#version
-terraform --version
-
-# auto complete
-terraform -install-autocomplete
-
-# load Modules and Providers
-terraform init
-
-# debug
-terraform console
-
-# write debug logs to file
-export TF_LOG=”DEBUG”
-export TF_LOG_PATH=~foo.logs
-
-# don't get prompted to confirm apply
-terraform apply -auto-approve
-
-# terraform refresh was alias for
-terraform apply -refresh-only -auto-approve
-
-# list the resources known to Terraform 
-terraform state list
-
-# useful for listing Modules and Data sources
-terraform state list | awk -F'[/.]' '{print $1"."$2}' | uniq
-
-# detect Provider differences
-terraform state pull | jq -r '.resources|.[].provider'
-
-# refresh state in a single module
-terraform refresh -state=terraform.tfstate -target=module.foo
-
-# Validate
-terraform init -backend=false
-terraform validate
-```
-
-### debugging Terraform
-
-```bash
-# print the `output` only
-terraform output
-
-# print single item
-terraform output public_ip
-
-# get an ID from a Resource in local state file
-terraform state show 'module.foo.example.user[0]' 
-
-# print the resources and `output`
-terraform show
-brew upgrade gh
-terraform show -json | jq .
-
-### show IDs when state imports get messy
-terraform show terraform.tfstate | grep -i -A4 "module.access_rules.cloudflare_access_rule.challenge_anzac"
-
-# variables.tf
-variable "burger_ingrediant_list" {
-  type        = list(string)
-  description = "A list of all Burger ingrediants"
-  default     = ["cheese","bacon","lettuce","burger","relish"]
-
-# output.tf this works on lists and maps
-output "debugging_burgers" {
-  value = [for i, v in var.burger_ingrediant_list : "${i} is ${v}"]
-}
-# debugging_zones = [
-#   "0 is cheese",
-#   "1 is bacon",
-#   "2 is lettuce",
-#   "3 is burger",
-#   "4 is relish",
-# ]
-
-# map
-resource "foo" "bar" {
-  for_each   = var.countries_map
-  notes      = "${each.key} with country code ${each.value}"
-  mode       = "something"
-
-  configuration {
-    target = "country"
-    value  = each.value
-  }
-}
-variable "countries_map" {
-  type    = map
-  default = {
-    "Aussies" = "AU"
-    "Kiwis" = "NZ"
-    "Russia" = "RU"
-  }
-}
-
-# join
-> var.my_markets
-tolist([
-  "NZ",
-  "AU",
-  "FR",
-  "GB",
-])
-
-# join(separator, list)
-> join(", ", var.my_markets)
-"NZ, AU, FR, GB"
-
-> join(" ", var.my_markets)
-"NZ AU FR GB"
-
-# double escaped for Expression statements
-> local.southern_european_markets
-[
-  "\"IT\"",
-  "\"FR\"",
-  "\"ES\"",
-  "\"GR\"",
-  "\"PT\"",
-]
-> join(" ", local.southern_european_markets)
-"\"IT\" \"FR\" \"ES\" \"GR\" \"PT\""
-
-# debug with console
-`echo 'local.foo_hosts' | terraform console`
-
-# terraform console - interactive REPL
-terraform console
-
-# print keys from a map
-> keys(var.countries_map)
-tolist([
-  "Aussies",
-  "Kiwis",
-  "Russia",
-])
-
-# print values from a map
-> values(var.countries_map)
-tolist([
-  "AU",
-  "NZ",
-  "RU",
-])
-
-# pipe keys to console (non-interactive)
-echo 'keys(var.countries_map)' | terraform console
-
-# lookup a value by key
-> lookup(var.countries_map, "Aussies", "unknown")
-"AU"
-
-# check if a key exists
-> contains(keys(var.countries_map), "Kiwis")
-true
-
-# loop through a map - returns list of "key: value" strings
-> [for k, v in var.countries_map : "${k}: ${v}"]
-tolist([
-  "Aussies: AU",
-  "Kiwis: NZ",
-  "Russia: RU",
-])
-
-# loop through a map - keys only
-> [for k in keys(var.countries_map) : k]
-tolist([
-  "Aussies",
-  "Kiwis",
-  "Russia",
-])
-
-# pipe a loop to console (non-interactive)
-echo '[for k, v in var.countries_map : "${k}: ${v}"]' | terraform console
-
-# type inspection
-> type(var.countries_map)
-map(string)
-
-# length of a map
-> length(var.countries_map)
-3
-
-# merge two maps
-> merge(var.countries_map, {"Japan" = "JP"})
-{
-  "Aussies" = "AU"
-  "Japan"   = "JP"
-  "Kiwis"   = "NZ"
-  "Russia"  = "RU"
-}
-
-# filter a map by value - useful for debugging why for_each iterates unexpectedly
-> {for k, v in var.countries_map : k => v if v != "RU"}
-{
-  "Aussies" = "AU"
-  "Kiwis"   = "NZ"
-}
-
-# distinct values as a set
-> toset(values(var.countries_map))
-toset([
-  "AU",
-  "NZ",
-  "RU",
-])
-
-# string interpolation with a local
-> "region is ${local.region}"
-"region is ap-southeast-2"
-```
-
-### import
-
-```bash
-# import resource when dealing with a List of strings
-terraform import -state=foo.tfstate "module.access_rules.cloudflare_access_rule.foo[0]" account/abcd/1234
-
-
-# import resource when dealing with a Map. The value is "NeverNeverLand"
-terraform import -state=foo.tfstate "module.access_rules.cloudflare_access_rule.block_countries[\"NeverNeverLand\"]" account/abcd/1234
-```
-
-#### import Cloudflare Resources
-
-```bash
-# Step1 - auto-generate the Cloudflare resources and append into the main.tf file
-cf-terraforming generate --token $CLOUDFLARE_API_TOKEN --resource-type cloudflare_access_rule >> main.tf
-
-# generate lines of "import statements"
-cf-terraforming import --resource-type "cloudflare_access_rule" --token $CLOUDFLARE_API_TOKEN --account $CLOUDFLARE_ACCOUNT_ID
-
-# paste the import statements
-terraform import cloudflare_access_rule.xxx account/aaa/111
-terraform import cloudflare_access_rule.yyy account/aaa/222
-
-# verify Terraform now controls the state
-terraform state list
-terraform show
-```
-
-### rm
-
-```bash
-### dry run 
-terraform state rm -dry-run module.access_rules.cloudflare_access_rule.challenge_anzac
-
-# Remove inconsistent state from a module ( when AWS and TF differ )
-terraform state rm -state=sandbox.tfstate module.apps.baz.foo_params
-
-# remove state of a single item
-terraform state rm "module.access_rules.cloudflare_access_rule.countries_to_challenge[1]"
-
-# remove all resources of a given name
-terraform state rm "module.access_rules.cloudflare_access_rule.countries_to_challenge"
-
-# remove state of a single item with a non default state filename
-terraform state rm -state=mystate.tfstate "module.access_rules.cloudflare_access_rule.challenge_anzac[6]"
-```
-
-### code
-
-```bash
-# Gets List of strings
-value = local.country_codes
-
-# Convert from List of Strings to Map
-value = { for idx, val in local.foobar_domains : idx => val }
-
-# Get List of String values if
-value = [for x in local.foobar_domains : x if x == "foobar.fr"]
-
-# get index
-value = index(local.foobar_domains, "foobar.fr")
-
-# Contains Boolean response
-contains(local.foobar_domains, "foobar.fr")
-
-# Lookup
-> lookup({a=["bob", "Alice"], b=["Alice"], c=[]}, "a", "what?")
-[
-  "bob",
-  "Alice",
-]
-> lookup({a=["bob", "Alice"], b=["Alice"], c=[]}, "c", "what?")
-[]
-> lookup({a=["bob", "Alice"], b=["Alice"], c=[]}, "d", "what?")
-"what?"
-
-
-```
-
-### tflint
-
-```bash
-# Lint ( macOS )
-brew install tflint
-
-#which tflint               
-/usr/local/bin/tflint
-
-# Set Cloud environment ( so lint rules work )
-# Copy in plug-in data from https://github.com/terraform-linters/tflint-ruleset-aws
-vi ~/.tflint.hcl
-
-# update plug-in version to latest version and init
-tflint --init
-
-# file lint
-tflint foobar_file.tf
-
-# Behind the scenes
-tflint -c ~/.tflint.hcl foobar.tf 
-
-# Set log level
-tflint --loglevel trace foobar.tf
-
-# Debug
-TFLINT_LOG=debug tflint
 ```
