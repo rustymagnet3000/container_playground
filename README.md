@@ -1512,6 +1512,55 @@ tolist([
 
 # debug with console
 `echo 'local.foo_hosts' | terraform console`
+
+# terraform console - interactive REPL
+terraform console
+
+# print keys from a map
+> keys(var.countries_map)
+tolist([
+  "Aussies",
+  "Kiwis",
+  "Russia",
+])
+
+# print values from a map
+> values(var.countries_map)
+tolist([
+  "AU",
+  "NZ",
+  "RU",
+])
+
+# pipe keys to console (non-interactive)
+echo 'keys(var.countries_map)' | terraform console
+
+# lookup a value by key
+> lookup(var.countries_map, "Aussies", "unknown")
+"AU"
+
+# check if a key exists
+> contains(keys(var.countries_map), "Kiwis")
+true
+
+# loop through a map - returns list of "key: value" strings
+> [for k, v in var.countries_map : "${k}: ${v}"]
+tolist([
+  "Aussies: AU",
+  "Kiwis: NZ",
+  "Russia: RU",
+])
+
+# loop through a map - keys only
+> [for k in keys(var.countries_map) : k]
+tolist([
+  "Aussies",
+  "Kiwis",
+  "Russia",
+])
+
+# pipe a loop to console (non-interactive)
+echo '[for k, v in var.countries_map : "${k}: ${v}"]' | terraform console
 ```
 
 ### import
