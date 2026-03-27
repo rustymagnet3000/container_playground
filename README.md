@@ -55,7 +55,7 @@
     - [KubeSec](#kubesec)
 - [Terraform](#terraform)
     - [set up](#set-up)
-    - [show & output](#show--output)
+    - [debugging Terraform](#debugging-terraform)
     - [Create a List of Objects from List of Values](#create-a-list-of-objects-from-list-of-values)
     - [import](#import)
     - [rm](#rm)
@@ -1424,7 +1424,7 @@ terraform init -backend=false
 terraform validate
 ```
 
-### show & output
+### debugging Terraform
 
 ```bash
 # print the `output` only
@@ -1512,6 +1512,91 @@ tolist([
 
 # debug with console
 `echo 'local.foo_hosts' | terraform console`
+
+# terraform console - interactive REPL
+terraform console
+
+# print keys from a map
+> keys(var.countries_map)
+tolist([
+  "Aussies",
+  "Kiwis",
+  "Russia",
+])
+
+# print values from a map
+> values(var.countries_map)
+tolist([
+  "AU",
+  "NZ",
+  "RU",
+])
+
+# pipe keys to console (non-interactive)
+echo 'keys(var.countries_map)' | terraform console
+
+# lookup a value by key
+> lookup(var.countries_map, "Aussies", "unknown")
+"AU"
+
+# check if a key exists
+> contains(keys(var.countries_map), "Kiwis")
+true
+
+# loop through a map - returns list of "key: value" strings
+> [for k, v in var.countries_map : "${k}: ${v}"]
+tolist([
+  "Aussies: AU",
+  "Kiwis: NZ",
+  "Russia: RU",
+])
+
+# loop through a map - keys only
+> [for k in keys(var.countries_map) : k]
+tolist([
+  "Aussies",
+  "Kiwis",
+  "Russia",
+])
+
+# pipe a loop to console (non-interactive)
+echo '[for k, v in var.countries_map : "${k}: ${v}"]' | terraform console
+
+# type inspection
+> type(var.countries_map)
+map(string)
+
+# length of a map
+> length(var.countries_map)
+3
+
+# merge two maps
+> merge(var.countries_map, {"Japan" = "JP"})
+{
+  "Aussies" = "AU"
+  "Japan"   = "JP"
+  "Kiwis"   = "NZ"
+  "Russia"  = "RU"
+}
+
+# filter a map by value - useful for debugging why for_each iterates unexpectedly
+> {for k, v in var.countries_map : k => v if v != "RU"}
+{
+  "Aussies" = "AU"
+  "Kiwis"   = "NZ"
+}
+
+# distinct values as a set
+> toset(values(var.countries_map))
+toset([
+  "AU",
+  "NZ",
+  "RU",
+])
+
+# string interpolation with a local
+> "region is ${local.region}"
+"region is ap-southeast-2"
 ```
 
 ### import
