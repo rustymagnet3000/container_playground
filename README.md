@@ -55,7 +55,7 @@
     - [KubeSec](#kubesec)
 - [Terraform](#terraform)
     - [set up](#set-up)
-    - [show & output](#show--output)
+    - [debugging Terraform](#debugging-terraform)
     - [Create a List of Objects from List of Values](#create-a-list-of-objects-from-list-of-values)
     - [import](#import)
     - [rm](#rm)
@@ -1424,7 +1424,7 @@ terraform init -backend=false
 terraform validate
 ```
 
-### show & output
+### debugging Terraform
 
 ```bash
 # print the `output` only
@@ -1561,6 +1561,42 @@ tolist([
 
 # pipe a loop to console (non-interactive)
 echo '[for k, v in var.countries_map : "${k}: ${v}"]' | terraform console
+
+# type inspection
+> type(var.countries_map)
+map(string)
+
+# length of a map
+> length(var.countries_map)
+3
+
+# merge two maps
+> merge(var.countries_map, {"Japan" = "JP"})
+{
+  "Aussies" = "AU"
+  "Japan"   = "JP"
+  "Kiwis"   = "NZ"
+  "Russia"  = "RU"
+}
+
+# filter a map by value - useful for debugging why for_each iterates unexpectedly
+> {for k, v in var.countries_map : k => v if v != "RU"}
+{
+  "Aussies" = "AU"
+  "Kiwis"   = "NZ"
+}
+
+# distinct values as a set
+> toset(values(var.countries_map))
+toset([
+  "AU",
+  "NZ",
+  "RU",
+])
+
+# string interpolation with a local
+> "region is ${local.region}"
+"region is ap-southeast-2"
 ```
 
 ### import
